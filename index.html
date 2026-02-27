@@ -3,356 +3,457 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>倉庫離線助手 V4</title>
-    <!-- 離線掃描庫：建議下載後將 src 指向本機檔案 -->
+    <title>多人雲端倉庫助手</title>
+    <!-- 掃描庫 -->
     <script src="https://unpkg.com/html5-qrcode"></script>
-
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        :root {
-            --primary: #2563eb;
-            --bg: #f8fafc;
-            --card: #ffffff;
-            --text: #0f172a;
-            --secondary: #64748b;
-            --success: #10b981;
-            --danger: #ef4444;
-        }
-
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        
-        body { 
-            font-family: -apple-system, system-ui, sans-serif;
-            margin: 0; background-color: var(--bg); color: var(--text);
-            overflow-x: hidden;
-        }
-
-        /* --- 快速啟動過渡 --- */
-        #splash-screen {
-            position: fixed; inset: 0; background: var(--primary);
-            display: flex; align-items: center; justify-content: center;
-            z-index: 9999; transition: opacity 0.4s ease, visibility 0.4s;
-        }
-
-        .splash-logo {
-            width: 70px; height: 70px; background: white; border-radius: 18px;
-            display: flex; align-items: center; justify-content: center;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-            animation: quick-pop 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        }
-
-        @keyframes quick-pop {
-            from { transform: scale(0.5); opacity: 0; }
-            to { transform: scale(1); opacity: 1; }
-        }
-
-        .hide-splash { opacity: 0; visibility: hidden; }
-
-        /* --- 主介面樣式 --- */
-        nav {
-            background: var(--card); color: var(--text); padding: 1rem;
-            position: sticky; top: 0; z-index: 50; display: flex;
-            justify-content: space-between; align-items: center;
-            border-bottom: 1px solid #e2e8f0;
-        }
-
-        .container { 
-            max-width: 600px; margin: 0 auto; padding: 1rem; 
-            animation: fadeIn 0.4s ease-out;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-
-        .card {
-            background: var(--card); border-radius: 1.25rem; padding: 1.25rem;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05); margin-bottom: 1.25rem;
-            border: 1px solid #f1f5f9;
-        }
-
-        .mode-tabs {
-            display: flex; background: #f1f5f9; padding: 4px; border-radius: 10px; margin-bottom: 1.25rem;
-        }
-        .mode-btn {
-            flex: 1; border: none; background: none; padding: 8px;
-            font-weight: 800; border-radius: 8px; color: var(--secondary); font-size: 0.85rem;
-        }
-        .mode-btn.active { background: var(--primary); color: white; box-shadow: 0 2px 6px rgba(37, 99, 235, 0.2); }
-
-        label { display: block; font-size: 0.75rem; font-weight: 700; color: var(--secondary); margin-bottom: 0.4rem; padding-left: 4px; }
-        
-        .input-row { display: flex; gap: 8px; margin-bottom: 1rem; }
-        input {
-            flex: 1; border: 2px solid #f1f5f9; border-radius: 10px; padding: 12px;
-            font-size: 1rem; outline: none; background: #f8fafc;
-        }
-        input:focus { border-color: var(--primary); background: white; }
-
-        .scan-trigger {
-            background: #dbeafe; color: var(--primary); border: none; width: 48px;
-            border-radius: 10px; display: flex; align-items: center; justify-content: center;
-        }
-
-        .qty-box { display: flex; align-items: center; gap: 8px; margin-bottom: 1.25rem; }
-        .step-btn {
-            width: 48px; height: 48px; border-radius: 10px; border: none;
-            background: #f1f5f9; font-size: 1.2rem; font-weight: bold; color: var(--secondary);
-        }
-
-        .confirm-btn {
-            width: 100%; padding: 14px; border: none; border-radius: 12px;
-            font-size: 1rem; font-weight: 800; color: white; cursor: pointer;
-            transition: 0.1s;
-        }
-        .confirm-btn:active { transform: scale(0.98); opacity: 0.9; }
-
-        /* 庫存清單 */
-        .item-row {
-            background: var(--card); padding: 14px; border-radius: 14px;
-            display: flex; justify-content: space-between; align-items: center;
-            margin-bottom: 8px; border: 1px solid #f1f5f9; transition: 0.2s;
-        }
-        .item-row:active { background: #f1f5f9; transform: translateY(1px); }
-        .item-row .sku-name { font-weight: 700; color: var(--text); font-size: 0.95rem; }
-        .item-row .sku-hint { font-size: 0.65rem; color: var(--primary); font-weight: 600; }
-        .item-row .qty-val { font-size: 1.25rem; font-weight: 900; }
-
-        /* 其他介面 */
-        #scanner-view { position: fixed; inset: 0; background: black; z-index: 10000; display: none; flex-direction: column; }
-        #modal-view { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 500; display: none; align-items: center; justify-content: center; padding: 20px; }
-        .modal-body { background: white; border-radius: 20px; width: 100%; max-width: 400px; padding: 20px; }
-        textarea { width: 100%; height: 100px; border-radius: 10px; border: 1px solid #e2e8f0; padding: 10px; font-family: monospace; font-size: 12px; margin: 12px 0; }
-        
-        .toast {
-            position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
-            background: #1e293b; color: white; padding: 10px 20px;
-            border-radius: 20px; font-size: 13px; font-weight: 600;
-            opacity: 0; transition: 0.3s; z-index: 1000; pointer-events: none;
-        }
+        body { -webkit-tap-highlight-color: transparent; }
+        .tab-active { border-bottom: 3px solid #2563eb; color: #2563eb; font-weight: 800; }
+        ::-webkit-scrollbar { width: 0; background: transparent; }
     </style>
 </head>
-<body>
+<body class="bg-slate-50 min-h-screen pb-20 font-sans">
 
-    <!-- 啟動動畫 (極速過渡) -->
-    <div id="splash-screen">
-        <div class="splash-logo">
-            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M21 8V21H3V8M1 3H23V8H1V3ZM10 12H14"/>
-            </svg>
+    <!-- 啟動覆蓋層 (用於設置人員名稱) -->
+    <div id="setup-overlay" class="fixed inset-0 bg-blue-600 z-[1000] flex items-center justify-center p-6 hidden">
+        <div class="bg-white rounded-3xl p-8 w-full max-w-sm shadow-2xl text-center">
+            <h2 class="text-2xl font-black mb-2 text-slate-800">歡迎使用</h2>
+            <p class="text-slate-500 text-sm mb-6">請輸入此手機的名稱或操作員姓名，以便追蹤歷史紀錄。</p>
+            <input type="text" id="operator-name-input" placeholder="例如：倉管-小明" class="w-full border-2 border-slate-100 rounded-xl px-4 py-3 mb-4 outline-none focus:border-blue-500 text-center font-bold">
+            <button onclick="saveOperatorName()" class="w-full bg-blue-600 text-white py-4 rounded-xl font-bold shadow-lg shadow-blue-100">開始盤點</button>
         </div>
     </div>
 
-    <nav>
-        <div style="display: flex; align-items: center; gap: 6px;">
-            <span style="font-weight: 900; font-size: 1.1rem; color: var(--primary);">IMS</span>
-            <span style="font-weight: 600; font-size: 1rem;">Lite</span>
+    <!-- 導航欄 -->
+    <nav class="bg-white border-b border-slate-200 px-4 py-3 sticky top-0 z-50 flex justify-between items-center shadow-sm">
+        <div class="flex flex-col">
+            <span class="text-xs font-black text-blue-600 uppercase tracking-tighter">Shared IMS</span>
+            <span id="display-operator" class="text-sm font-bold text-slate-700">載入中...</span>
         </div>
-        <button onclick="toggleExport(true)" style="background: var(--primary); border: none; color: white; padding: 6px 14px; border-radius: 8px; font-weight: 800; font-size: 0.75rem;">匯出報表</button>
+        <div class="flex gap-2">
+            <button onclick="toggleCategoryManager(true)" class="p-2 bg-slate-100 rounded-lg text-slate-600">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2H2v10h10V2zM22 2h-10v10h10V2zM12 12H2v10h10V12zM22 12h-10v10h10V12z"/></svg>
+            </button>
+            <button onclick="exportAllData()" class="bg-blue-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold">匯出</button>
+        </div>
     </nav>
 
-    <div class="container">
-        <div class="mode-tabs">
-            <button class="mode-btn active" onclick="setMode('IN', this)">入庫</button>
-            <button class="mode-btn" onclick="setMode('OUT', this)">出庫</button>
-            <button class="mode-btn" onclick="setMode('COUNT', this)">盤點</button>
+    <main class="max-w-md mx-auto p-4 space-y-4">
+        
+        <!-- 分頁切換 -->
+        <div class="flex bg-white rounded-xl p-1 shadow-sm border border-slate-100">
+            <button onclick="switchTab('action')" id="tab-action" class="flex-1 py-2 text-sm font-bold tab-active">操作</button>
+            <button onclick="switchTab('stock')" id="tab-stock" class="flex-1 py-2 text-sm font-bold text-slate-400">現存庫存</button>
+            <button onclick="switchTab('history')" id="tab-history" class="flex-1 py-2 text-sm font-bold text-slate-400">歷史日誌</button>
         </div>
 
-        <div class="card">
-            <label>料號 / 條碼</label>
-            <div class="input-row">
-                <input type="text" id="sku-input" placeholder="掃描或手動輸入...">
-                <button class="scan-trigger" onclick="startScanner()">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/></svg>
-                </button>
+        <!-- 1. 操作面板 -->
+        <div id="section-action" class="space-y-4">
+            <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 space-y-4">
+                <div class="flex gap-2">
+                    <button onclick="setMode('IN')" id="mode-in" class="flex-1 py-2 rounded-lg bg-blue-600 text-white font-bold text-sm">入庫</button>
+                    <button onclick="setMode('OUT')" id="mode-out" class="flex-1 py-2 rounded-lg bg-slate-100 text-slate-500 font-bold text-sm">出庫</button>
+                    <button onclick="setMode('COUNT')" id="mode-count" class="flex-1 py-2 rounded-lg bg-slate-100 text-slate-500 font-bold text-sm">盤點</button>
+                </div>
+
+                <div class="space-y-3">
+                    <div>
+                        <label class="text-[10px] font-bold text-slate-400 uppercase ml-1">類別</label>
+                        <select id="input-category" class="w-full bg-slate-50 border-0 rounded-xl px-4 py-3 text-slate-800 outline-none focus:ring-2 focus:ring-blue-500">
+                            <!-- 由 JS 動態生成 -->
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="text-[10px] font-bold text-slate-400 uppercase ml-1">料號 / 條碼</label>
+                        <div class="flex gap-2">
+                            <input type="text" id="input-sku" placeholder="掃描或手動輸入..." class="flex-1 bg-slate-50 border-0 rounded-xl px-4 py-3 text-slate-800 outline-none focus:ring-2 focus:ring-blue-500">
+                            <button onclick="startScanner()" class="bg-blue-100 text-blue-600 p-3 rounded-xl">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/></svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="text-[10px] font-bold text-slate-400 uppercase ml-1">數量</label>
+                        <div class="flex items-center bg-slate-50 rounded-xl p-1">
+                            <button onclick="stepQty(-1)" class="w-12 h-10 bg-white rounded-lg shadow-sm font-bold">-</button>
+                            <input type="number" id="input-qty" value="1" class="flex-1 bg-transparent text-center font-black text-lg outline-none">
+                            <button onclick="stepQty(1)" class="w-12 h-10 bg-white rounded-lg shadow-sm font-bold">+</button>
+                        </div>
+                    </div>
+
+                    <button id="btn-submit" onclick="submitTransaction()" class="w-full bg-blue-600 text-white py-4 rounded-xl font-black text-lg shadow-xl shadow-blue-100 active:scale-95 transition-all">
+                        確認入庫
+                    </button>
+                </div>
             </div>
-
-            <label>數量</label>
-            <div class="qty-box">
-                <button class="step-btn" onclick="changeQty(-1)">-</button>
-                <input type="number" id="qty-input" value="1">
-                <button class="step-btn" onclick="changeQty(1)">+</button>
-            </div>
-
-            <button id="submit-btn" class="confirm-btn" style="background: var(--primary);" onclick="handleCommit()">確認入庫</button>
         </div>
 
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; padding: 0 4px;">
-            <h2 style="font-size: 0.7rem; font-weight: 800; color: var(--secondary); text-transform: uppercase;">近期庫存紀錄</h2>
-            <button onclick="clearAll()" style="background: none; border: none; color: var(--danger); font-size: 0.7rem; font-weight: bold;">清除全部</button>
+        <!-- 2. 現存庫存 -->
+        <div id="section-stock" class="hidden space-y-3">
+            <div id="stock-list" class="space-y-2 text-sm text-slate-500">載入雲端數據中...</div>
         </div>
-        <div id="list-container"></div>
+
+        <!-- 3. 歷史日誌 -->
+        <div id="section-history" class="hidden space-y-3">
+            <div id="history-list" class="space-y-2 text-sm text-slate-500 text-center">歷史載入中...</div>
+        </div>
+
+    </main>
+
+    <!-- 掃描器全螢幕 -->
+    <div id="scanner-view" class="fixed inset-0 bg-black z-[2000] hidden flex flex-col">
+        <div id="reader" class="flex-1"></div>
+        <div class="p-8 bg-black text-center">
+            <button onclick="stopScanner()" class="bg-red-600 text-white px-8 py-4 rounded-2xl font-bold">結束掃描</button>
+        </div>
     </div>
 
-    <!-- 掃描介面 -->
-    <div id="scanner-view">
-        <div id="reader"></div>
-        <div style="padding: 1.5rem; background: black; text-align: center;">
-            <button onclick="stopScanner()" style="background: var(--danger); color: white; border: none; padding: 12px 30px; border-radius: 10px; font-weight: bold;">結束掃描</button>
-        </div>
-    </div>
-
-    <!-- 匯出介面 -->
-    <div id="modal-view" onclick="toggleExport(false)">
-        <div class="modal-body" onclick="event.stopPropagation()">
-            <h3 style="margin: 0; font-size: 1.1rem;">匯出資料</h3>
-            <textarea id="export-text" readonly></textarea>
-            <div style="display: flex; gap: 8px;">
-                <button onclick="copyCSV()" style="flex: 1; padding: 10px; border: none; border-radius: 10px; background: #f1f5f9; font-weight: bold; font-size: 0.85rem;">複製</button>
-                <button onclick="toggleExport(false)" style="flex: 1; padding: 10px; border: none; border-radius: 10px; background: var(--primary); color: white; font-weight: bold; font-size: 0.85rem;">關閉</button>
+    <!-- 類別管理彈窗 -->
+    <div id="category-modal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-[100] hidden flex items-center justify-center p-6" onclick="toggleCategoryManager(false)">
+        <div class="bg-white w-full max-w-sm rounded-3xl p-6 space-y-4" onclick="event.stopPropagation()">
+            <h3 class="text-xl font-black">自定義類別</h3>
+            <div class="flex gap-2">
+                <input type="text" id="new-category-name" placeholder="輸入新類別" class="flex-1 bg-slate-50 border-0 rounded-xl px-4 py-2 outline-none">
+                <button onclick="addNewCategory()" class="bg-blue-600 text-white px-4 rounded-xl font-bold">+</button>
             </div>
+            <div id="category-list-manager" class="space-y-2 max-h-60 overflow-y-auto pr-2">
+                <!-- 類別清單 -->
+            </div>
+            <button onclick="toggleCategoryManager(false)" class="w-full py-3 bg-slate-100 rounded-xl font-bold">關閉</button>
         </div>
     </div>
 
-    <div id="toast" class="toast">操作成功</div>
+    <div id="toast" class="fixed bottom-10 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-6 py-3 rounded-full text-sm font-bold opacity-0 transition-all z-[3000]"></div>
 
-    <script>
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, doc, setDoc, addDoc, onSnapshot, query, serverTimestamp, getDoc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const firebaseConfig = JSON.parse(__firebase_config);
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'shared-inventory';
+
+        // 狀態
+        let user = null;
+        let operatorName = localStorage.getItem('ims_operator_name');
         let currentMode = 'IN';
-        let stock = JSON.parse(localStorage.getItem('my_inventory_v4')) || {};
-        let scanner = null;
+        let categories = ['培林', '氣壓缸', '螺絲', '耗材', '其他'];
+        let html5QrCode = null;
 
-        // 啟動邏輯：盡快移除 Splash
-        window.addEventListener('DOMContentLoaded', () => {
-            renderList();
-            // 給予 0.8 秒的緩衝讓使用者看見 Logo 彈出，隨即消失
-            setTimeout(() => {
-                document.getElementById('splash-screen').classList.add('hide-splash');
-            }, 800);
-        });
-
-        function setMode(mode, btn) {
-            currentMode = mode;
-            document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            
-            const submit = document.getElementById('submit-btn');
-            const map = {
-                'IN': ['確認入庫', '#2563eb'],
-                'OUT': ['確認出庫', '#f97316'],
-                'COUNT': ['盤點校正', '#10b981']
-            };
-            submit.innerText = map[mode][0];
-            submit.style.background = map[mode][1];
-        }
-
-        function changeQty(v) {
-            const input = document.getElementById('qty-input');
-            input.value = Math.max(1, (parseInt(input.value) || 0) + v);
-        }
-
-        function handleCommit() {
-            const sku = document.getElementById('sku-input').value.trim();
-            const qty = parseInt(document.getElementById('qty-input').value) || 0;
-
-            if (!sku) return popToast("⚠️ 請輸入料號");
-
-            if (!stock[sku]) stock[sku] = 0;
-
-            if (currentMode === 'IN') stock[sku] += qty;
-            else if (currentMode === 'OUT') stock[sku] -= qty;
-            else stock[sku] = qty;
-
-            save();
-            renderList();
-            
-            document.getElementById('sku-input').value = "";
-            document.getElementById('qty-input').value = "1";
-            popToast("✅ 已紀錄");
-        }
-
-        function autoFill(sku) {
-            document.getElementById('sku-input').value = sku;
-            document.getElementById('qty-input').value = stock[sku] || 1;
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-            popToast(`已載入: ${sku}`);
-        }
-
-        function save() {
-            localStorage.setItem('my_inventory_v4', JSON.stringify(stock));
-        }
-
-        function renderList() {
-            const container = document.getElementById('list-container');
-            container.innerHTML = "";
-            const entries = Object.entries(stock).reverse();
-
-            if (entries.length === 0) {
-                container.innerHTML = `<div style="text-align:center; padding: 30px; color: #cbd5e1; font-size: 13px;">尚無紀錄</div>`;
-                return;
+        // 啟動流程
+        async function init() {
+            if (!operatorName) {
+                document.getElementById('setup-overlay').classList.remove('hidden');
+            } else {
+                document.getElementById('display-operator').innerText = `👤 ${operatorName}`;
             }
 
-            entries.forEach(([sku, qty]) => {
-                const row = document.createElement('div');
-                row.className = 'item-row';
-                row.onclick = () => autoFill(sku);
-                row.innerHTML = `
-                    <div>
-                        <div class="sku-name">${sku}</div>
-                        <div class="sku-hint">點擊回填</div>
-                    </div>
-                    <div class="qty-val" style="color: ${qty<0?'var(--danger)':'var(--text)'}">${qty}</div>
-                `;
-                container.appendChild(row);
+            // 匿名登入 (Firestore 必要)
+            try {
+                await signInAnonymously(auth);
+            } catch (e) {
+                alert("資料庫連線失敗，請檢查網路。");
+            }
+
+            onAuthStateChanged(auth, (u) => {
+                if (u) {
+                    user = u;
+                    loadSystemData();
+                }
             });
         }
 
-        async function startScanner() {
-            document.getElementById('scanner-view').style.display = 'flex';
-            scanner = new Html5Qrcode("reader");
+        // 儲存操作員姓名
+        window.saveOperatorName = () => {
+            const name = document.getElementById('operator-name-input').value.trim();
+            if (!name) return alert("請輸入名稱");
+            localStorage.setItem('ims_operator_name', name);
+            operatorName = name;
+            document.getElementById('display-operator').innerText = `👤 ${name}`;
+            document.getElementById('setup-overlay').classList.add('hidden');
+        };
+
+        // 雲端數據同步
+        function loadSystemData() {
+            if (!user) return;
+
+            // 1. 同步類別列表
+            const catDoc = doc(db, 'artifacts', appId, 'public', 'settings', 'categories');
+            onSnapshot(catDoc, (snapshot) => {
+                if (snapshot.exists()) {
+                    categories = snapshot.data().list || [];
+                } else {
+                    // 第一次初始化
+                    setDoc(catDoc, { list: categories });
+                }
+                renderCategoryOptions();
+            }, (e) => console.error(e));
+
+            // 2. 同步即時庫存
+            const stockCol = collection(db, 'artifacts', appId, 'public', 'data', 'stock');
+            onSnapshot(stockCol, (snapshot) => {
+                const stockData = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+                renderStockList(stockData);
+                window.allStockData = stockData; // 用於回填
+            }, (e) => console.error(e));
+
+            // 3. 同步歷史紀錄 (規則 2: 抓取全部後在前端排)
+            const historyCol = collection(db, 'artifacts', appId, 'public', 'data', 'history');
+            onSnapshot(historyCol, (snapshot) => {
+                const logs = snapshot.docs.map(d => d.data());
+                // 按時間排序
+                logs.sort((a, b) => (b.timestamp?.toMillis() || 0) - (a.timestamp?.toMillis() || 0));
+                renderHistoryList(logs);
+            }, (e) => console.error(e));
+        }
+
+        // 提交交易
+        window.submitTransaction = async () => {
+            const sku = document.getElementById('input-sku').value.trim();
+            const qty = parseInt(document.getElementById('input-qty').value);
+            const category = document.getElementById('input-category').value;
+
+            if (!sku || !qty) return showToast("❌ 請完整填寫料號與數量");
+
+            const btn = document.getElementById('btn-submit');
+            btn.disabled = true;
+            btn.innerText = "提交中...";
+
             try {
-                await scanner.start({ facingMode: "environment" }, { fps: 20, qrbox: 220 }, (text) => {
-                    document.getElementById('sku-input').value = text;
+                const stockDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'stock', sku);
+                const stockSnap = await getDoc(stockDocRef);
+                
+                let newQty = qty;
+                let currentStock = 0;
+
+                if (stockSnap.exists()) {
+                    currentStock = stockSnap.data().qty || 0;
+                    if (currentMode === 'IN') newQty = currentStock + qty;
+                    else if (currentMode === 'OUT') newQty = currentStock - qty;
+                    // 如果是 COUNT，就直接用輸入的 qty
+                }
+
+                // 更新庫存
+                await setDoc(stockDocRef, {
+                    sku,
+                    qty: newQty,
+                    category,
+                    lastUpdated: serverTimestamp(),
+                    lastOperator: operatorName
+                });
+
+                // 寫入歷史紀錄
+                await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'history'), {
+                    sku,
+                    type: currentMode,
+                    change: qty,
+                    after: newQty,
+                    operator: operatorName,
+                    category: category,
+                    timestamp: serverTimestamp()
+                });
+
+                showToast(`✅ ${sku} 已更新為 ${newQty}`);
+                document.getElementById('input-sku').value = "";
+                document.getElementById('input-qty').value = "1";
+            } catch (e) {
+                showToast("❌ 雲端更新失敗");
+                console.error(e);
+            } finally {
+                btn.disabled = false;
+                setMode(currentMode); // 恢復按鈕文字
+            }
+        };
+
+        // UI 渲染與控制
+        function renderCategoryOptions() {
+            const select = document.getElementById('input-category');
+            const manager = document.getElementById('category-list-manager');
+            
+            select.innerHTML = categories.map(c => `<option value="${c}">${c}</option>`).join('');
+            manager.innerHTML = categories.map(c => `
+                <div class="flex justify-between items-center bg-slate-50 p-3 rounded-xl border border-slate-100">
+                    <span class="font-bold">${c}</span>
+                    <button onclick="removeCategory('${c}')" class="text-red-500 font-black text-lg">×</button>
+                </div>
+            `).join('');
+        }
+
+        function renderStockList(data) {
+            const list = document.getElementById('stock-list');
+            if (data.length === 0) {
+                list.innerHTML = `<div class="text-center py-20 text-slate-300">目前雲端無任何庫存資料</div>`;
+                return;
+            }
+
+            list.innerHTML = data.map(item => `
+                <div class="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex justify-between items-center active:scale-[0.98] transition-all" onclick="autoFill('${item.sku}', '${item.category}')">
+                    <div class="space-y-0.5">
+                        <span class="text-[10px] font-black bg-blue-100 text-blue-600 px-2 py-0.5 rounded-full uppercase">${item.category}</span>
+                        <div class="text-lg font-black text-slate-800">${item.sku}</div>
+                        <div class="text-[10px] text-slate-400">最後由 ${item.lastOperator || '系統'} 更新</div>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-xs text-slate-400 font-bold uppercase">Stock</div>
+                        <div class="text-2xl font-black ${item.qty < 0 ? 'text-red-500' : 'text-slate-900'}">${item.qty}</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderHistoryList(logs) {
+            const list = document.getElementById('history-list');
+            if (logs.length === 0) {
+                list.innerHTML = `<div class="py-20 text-slate-300">尚無歷史操作紀錄</div>`;
+                return;
+            }
+
+            list.innerHTML = logs.slice(0, 50).map(log => {
+                const time = log.timestamp ? new Date(log.timestamp.toMillis()).toLocaleString() : '處理中...';
+                const typeColor = { 'IN': 'text-blue-600', 'OUT': 'text-orange-500', 'COUNT': 'text-emerald-600' }[log.type];
+                const typeText = { 'IN': '入庫', 'OUT': '出庫', 'COUNT': '盤點' }[log.type];
+                
+                return `
+                    <div class="bg-white p-4 rounded-xl border border-slate-50 shadow-sm flex flex-col gap-1">
+                        <div class="flex justify-between items-start">
+                            <span class="text-xs font-bold ${typeColor} bg-slate-50 px-2 py-0.5 rounded">${typeText}</span>
+                            <span class="text-[10px] text-slate-300">${time}</span>
+                        </div>
+                        <div class="flex justify-between items-end">
+                            <div>
+                                <div class="font-black text-slate-800">${log.sku}</div>
+                                <div class="text-[10px] text-slate-400">操作人: ${log.operator}</div>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-xs font-bold text-slate-800">${log.type === 'OUT' ? '-' : '+'}${log.change} 件</div>
+                                <div class="text-[10px] text-slate-400">結存: ${log.after}</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // 全域函數
+        window.switchTab = (tab) => {
+            ['action', 'stock', 'history'].forEach(t => {
+                document.getElementById(`section-${t}`).classList.add('hidden');
+                document.getElementById(`tab-${t}`).classList.remove('tab-active');
+            });
+            document.getElementById(`section-${tab}`).classList.remove('hidden');
+            document.getElementById(`tab-${tab}`).classList.add('tab-active');
+        };
+
+        window.setMode = (m) => {
+            currentMode = m;
+            const modes = ['in', 'out', 'count'];
+            const colors = { in: 'bg-blue-600', out: 'bg-orange-500', count: 'bg-emerald-600' };
+            const labels = { in: '確認入庫', out: '確認出庫', count: '更新盤點數' };
+
+            modes.forEach(mode => {
+                const el = document.getElementById(`mode-${mode}`);
+                if (mode === m.toLowerCase()) {
+                    el.className = `flex-1 py-2 rounded-lg ${colors[mode]} text-white font-bold text-sm transition-colors`;
+                } else {
+                    el.className = `flex-1 py-2 rounded-lg bg-slate-100 text-slate-500 font-bold text-sm transition-colors`;
+                }
+            });
+
+            document.getElementById('btn-submit').innerText = labels[m.toLowerCase()];
+            document.getElementById('btn-submit').style.backgroundColor = colors[m.toLowerCase()];
+        };
+
+        window.stepQty = (val) => {
+            const i = document.getElementById('input-qty');
+            i.value = Math.max(1, (parseInt(i.value) || 0) + val);
+        };
+
+        window.autoFill = (sku, cat) => {
+            document.getElementById('input-sku').value = sku;
+            document.getElementById('input-category').value = cat;
+            switchTab('action');
+            showToast(`已載入料號 ${sku}`);
+        };
+
+        window.toggleCategoryManager = (show) => {
+            document.getElementById('category-modal').classList.toggle('hidden', !show);
+        };
+
+        window.addNewCategory = async () => {
+            const name = document.getElementById('new-category-name').value.trim();
+            if (!name || categories.includes(name)) return;
+            const updated = [...categories, name];
+            await setDoc(doc(db, 'artifacts', appId, 'public', 'settings', 'categories'), { list: updated });
+            document.getElementById('new-category-name').value = "";
+        };
+
+        window.removeCategory = async (name) => {
+            if (!confirm(`確定要移除類別「${name}」嗎？這不會刪除已存在的料號數據。`)) return;
+            const updated = categories.filter(c => c !== name);
+            await setDoc(doc(db, 'artifacts', appId, 'public', 'settings', 'categories'), { list: updated });
+        };
+
+        window.startScanner = async () => {
+            document.getElementById('scanner-view').classList.remove('hidden');
+            html5QrCode = new Html5Qrcode("reader");
+            try {
+                await html5QrCode.start({ facingMode: "environment" }, { fps: 20, qrbox: 250 }, (text) => {
+                    document.getElementById('input-sku').value = text;
                     stopScanner();
                 });
             } catch (e) {
-                alert("相機異常，請檢查權限");
+                alert("相機異常，請確保 HTTPS 連線並授權相機");
                 stopScanner();
             }
-        }
+        };
 
-        function stopScanner() {
-            if (scanner) {
-                scanner.stop().then(() => {
-                    document.getElementById('scanner-view').style.display = 'none';
+        window.stopScanner = () => {
+            if (html5QrCode) {
+                html5QrCode.stop().then(() => {
+                    document.getElementById('scanner-view').classList.add('hidden');
                 }).catch(() => {
-                    document.getElementById('scanner-view').style.display = 'none';
+                    document.getElementById('scanner-view').classList.add('hidden');
                 });
-            }
-        }
-
-        function toggleExport(show) {
-            if (show) {
-                let csv = "\uFEFF料號,庫存量\n";
-                Object.entries(stock).forEach(([s, q]) => csv += `"${s}",${q}\n`);
-                document.getElementById('export-text').value = csv;
-                document.getElementById('modal-view').style.display = 'flex';
             } else {
-                document.getElementById('modal-view').style.display = 'none';
+                document.getElementById('scanner-view').classList.add('hidden');
             }
-        }
+        };
 
-        function copyCSV() {
-            const area = document.getElementById('export-text');
-            area.select();
-            document.execCommand('copy');
-            popToast("📋 已複製");
-        }
+        window.exportAllData = () => {
+            if (!window.allStockData || window.allStockData.length === 0) return alert("尚無資料");
+            let csv = "\uFEFF料號,類別,當前庫存,最後更新人\n";
+            window.allStockData.forEach(item => {
+                csv += `"${item.sku}","${item.category}",${item.qty},"${item.lastOperator}"\n`;
+            });
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `CloudInventory_${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+        };
 
-        function clearAll() {
-            if (confirm("確定刪除所有本機資料？")) {
-                stock = {};
-                save();
-                renderList();
-                popToast("🗑️ 已清空");
-            }
-        }
-
-        function popToast(msg) {
+        function showToast(msg) {
             const t = document.getElementById('toast');
             t.innerText = msg;
             t.style.opacity = "1";
-            setTimeout(() => t.style.opacity = "0", 1500);
+            t.style.transform = "translate(-50%, -20px)";
+            setTimeout(() => {
+                t.style.opacity = "0";
+                t.style.transform = "translate(-50%, 0)";
+            }, 2000);
         }
+
+        init();
     </script>
 </body>
 </html>
+
