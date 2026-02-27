@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>倉庫離線助手 V4</title>
+    <!-- 離線掃描庫：建議下載後將 src 指向本機檔案 -->
+    <script src="html5-qrcode.min.js"></script>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --text: #0f172a;
+            --secondary: #64748b;
+            --success: #10b981;
+            --danger: #ef4444;
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        
+        body { 
+            font-family: -apple-system, system-ui, sans-serif;
+            margin: 0; background-color: var(--bg); color: var(--text);
+            overflow-x: hidden;
+        }
+
+        /* --- 快速啟動過渡 --- */
+        #splash-screen {
+            position: fixed; inset: 0; background: var(--primary);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 9999; transition: opacity 0.4s ease, visibility 0.4s;
+        }
+
+        .splash-logo {
+            width: 70px; height: 70px; background: white; border-radius: 18px;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            animation: quick-pop 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        @keyframes quick-pop {
+            from { transform: scale(0.5); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        .hide-splash { opacity: 0; visibility: hidden; }
+
+        /* --- 主介面樣式 --- */
+        nav {
+            background: var(--card); color: var(--text); padding: 1rem;
+            position: sticky; top: 0; z-index: 50; display: flex;
+            justify-content: space-between; align-items: center;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .container { 
+            max-width: 600px; margin: 0 auto; padding: 1rem; 
+            animation: fadeIn 0.4s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .card {
+            background: var(--card); border-radius: 1.25rem; padding: 1.25rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05); margin-bottom: 1.25rem;
+            border: 1px solid #f1f5f9;
+        }
+
+        .mode-tabs {
+            display: flex; background: #f1f5f9; padding: 4px; border-radius: 10px; margin-bottom: 1.25rem;
+        }
+        .mode-btn {
+            flex: 1; border: none; background: none; padding: 8px;
+            font-weight: 800; border-radius: 8px; color: var(--secondary); font-size: 0.85rem;
+        }
+        .mode-btn.active { background: var(--primary); color: white; box-shadow: 0 2px 6px rgba(37, 99, 235, 0.2); }
+
+        label { display: block; font-size: 0.75rem; font-weight: 700; color: var(--secondary); margin-bottom: 0.4rem; padding-left: 4px; }
+        
+        .input-row { display: flex; gap: 8px; margin-bottom: 1rem; }
+        input {
+            flex: 1; border: 2px solid #f1f5f9; border-radius: 10px; padding: 12px;
+            font-size: 1rem; outline: none; background: #f8fafc;
+        }
+        input:focus { border-color: var(--primary); background: white; }
+
+        .scan-trigger {
+            background: #dbeafe; color: var(--primary); border: none; width: 48px;
+            border-radius: 10px; display: flex; align-items: center; justify-content: center;
+        }
+
+        .qty-box { display: flex; align-items: center; gap: 8px; margin-bottom: 1.25rem; }
+        .step-btn {
+            width: 48px; height: 48px; border-radius: 10px; border: none;
+            background: #f1f5f9; font-size: 1.2rem; font-weight: bold; color: var(--secondary);
+        }
+
+        .confirm-btn {
+            width: 100%; padding: 14px; border: none; border-radius: 12px;
+            font-size: 1rem; font-weight: 800; color: white; cursor: pointer;
+            transition: 0.1s;
+        }
+        .confirm-btn:active { transform: scale(0.98); opacity: 0.9; }
+
+        /* 庫存清單 */
+        .item-row {
+            background: var(--card); padding: 14px; border-radius: 14px;
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 8px; border: 1px solid #f1f5f9; transition: 0.2s;
+        }
+        .item-row:active { background: #f1f5f9; transform: translateY(1px); }
+        .item-row .sku-name { font-weight: 700; color: var(--text); font-size: 0.95rem; }
+        .item-row .sku-hint { font-size: 0.65rem; color: var(--primary); font-weight: 600; }
+        .item-row .qty-val { font-size: 1.25rem; font-weight: 900; }
+
+        /* 其他介面 */
+        #scanner-view { position: fixed; inset: 0; background: black; z-index: 10000; display: none; flex-direction: column; }
+        #modal-view { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 500; display: none; align-items: center; justify-content: center; padding: 20px; }
+        .modal-body { background: white; border-radius: 20px; width: 100%; max-width: 400px; padding: 20px; }
+        textarea { width: 100%; height: 100px; border-radius: 10px; border: 1px solid #e2e8f0; padding: 10px; font-family: monospace; font-size: 12px; margin: 12px 0; }
+        
+        .toast {
+            position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+            background: #1e293b; color: white; padding: 10px 20px;
+            border-radius: 20px; font-size: 13px; font-weight: 600;
+            opacity: 0; transition: 0.3s; z-index: 1000; pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 啟動動畫 (極速過渡) -->
+    <div id="splash-screen">
+        <div class="splash-logo">
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 8V21H3V8M1 3H23V8H1V3ZM10 12H14"/>
+            </svg>
+        </div>
+    </div>
+
+    <nav>
+        <div style="display: flex; align-items: center; gap: 6px;">
+            <span style="font-weight: 900; font-size: 1.1rem; color: var(--primary);">IMS</span>
+            <span style="font-weight: 600; font-size: 1rem;">Lite</span>
+        </div>
+        <button onclick="toggleExport(true)" style="background: var(--primary); border: none; color: white; padding: 6px 14px; border-radius: 8px; font-weight: 800; font-size: 0.75rem;">匯出報表</button>
+    </nav>
+
+    <div class="container">
+        <div class="mode-tabs">
+            <button class="mode-btn active" onclick="setMode('IN', this)">入庫</button>
+            <button class="mode-btn" onclick="setMode('OUT', this)">出庫</button>
+            <button class="mode-btn" onclick="setMode('COUNT', this)">盤點</button>
+        </div>
+
+        <div class="card">
+            <label>料號 / 條碼</label>
+            <div class="input-row">
+                <input type="text" id="sku-input" placeholder="掃描或手動輸入...">
+                <button class="scan-trigger" onclick="startScanner()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/></svg>
+                </button>
+            </div>
+
+            <label>數量</label>
+            <div class="qty-box">
+                <button class="step-btn" onclick="changeQty(-1)">-</button>
+                <input type="number" id="qty-input" value="1">
+                <button class="step-btn" onclick="changeQty(1)">+</button>
+            </div>
+
+            <button id="submit-btn" class="confirm-btn" style="background: var(--primary);" onclick="handleCommit()">確認入庫</button>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; padding: 0 4px;">
+            <h2 style="font-size: 0.7rem; font-weight: 800; color: var(--secondary); text-transform: uppercase;">近期庫存紀錄</h2>
+            <button onclick="clearAll()" style="background: none; border: none; color: var(--danger); font-size: 0.7rem; font-weight: bold;">清除全部</button>
+        </div>
+        <div id="list-container"></div>
+    </div>
+
+    <!-- 掃描介面 -->
+    <div id="scanner-view">
+        <div id="reader"></div>
+        <div style="padding: 1.5rem; background: black; text-align: center;">
+            <button onclick="stopScanner()" style="background: var(--danger); color: white; border: none; padding: 12px 30px; border-radius: 10px; font-weight: bold;">結束掃描</button>
+        </div>
+    </div>
+
+    <!-- 匯出介面 -->
+    <div id="modal-view" onclick="toggleExport(false)">
+        <div class="modal-body" onclick="event.stopPropagation()">
+            <h3 style="margin: 0; font-size: 1.1rem;">匯出資料</h3>
+            <textarea id="export-text" readonly></textarea>
+            <div style="display: flex; gap: 8px;">
+                <button onclick="copyCSV()" style="flex: 1; padding: 10px; border: none; border-radius: 10px; background: #f1f5f9; font-weight: bold; font-size: 0.85rem;">複製</button>
+                <button onclick="toggleExport(false)" style="flex: 1; padding: 10px; border: none; border-radius: 10px; background: var(--primary); color: white; font-weight: bold; font-size: 0.85rem;">關閉</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast">操作成功</div>
+
+    <script>
+        let currentMode = 'IN';
+        let stock = JSON.parse(localStorage.getItem('my_inventory_v4')) || {};
+        let scanner = null;
+
+        // 啟動邏輯：盡快移除 Splash
+        window.addEventListener('DOMContentLoaded', () => {
+            renderList();
+            // 給予 0.8 秒的緩衝讓使用者看見 Logo 彈出，隨即消失
+            setTimeout(() => {
+                document.getElementById('splash-screen').classList.add('hide-splash');
+            }, 800);
+        });
+
+        function setMode(mode, btn) {
+            currentMode = mode;
+            document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            
+            const submit = document.getElementById('submit-btn');
+            const map = {
+                'IN': ['確認入庫', '#2563eb'],
+                'OUT': ['確認出庫', '#f97316'],
+                'COUNT': ['盤點校正', '#10b981']
+            };
+            submit.innerText = map[mode][0];
+            submit.style.background = map[mode][1];
+        }
+
+        function changeQty(v) {
+            const input = document.getElementById('qty-input');
+            input.value = Math.max(1, (parseInt(input.value) || 0) + v);
+        }
+
+        function handleCommit() {
+            const sku = document.getElementById('sku-input').value.trim();
+            const qty = parseInt(document.getElementById('qty-input').value) || 0;
+
+            if (!sku) return popToast("⚠️ 請輸入料號");
+
+            if (!stock[sku]) stock[sku] = 0;
+
+            if (currentMode === 'IN') stock[sku] += qty;
+            else if (currentMode === 'OUT') stock[sku] -= qty;
+            else stock[sku] = qty;
+
+            save();
+            renderList();
+            
+            document.getElementById('sku-input').value = "";
+            document.getElementById('qty-input').value = "1";
+            popToast("✅ 已紀錄");
+        }
+
+        function autoFill(sku) {
+            document.getElementById('sku-input').value = sku;
+            document.getElementById('qty-input').value = stock[sku] || 1;
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            popToast(`已載入: ${sku}`);
+        }
+
+        function save() {
+            localStorage.setItem('my_inventory_v4', JSON.stringify(stock));
+        }
+
+        function renderList() {
+            const container = document.getElementById('list-container');
+            container.innerHTML = "";
+            const entries = Object.entries(stock).reverse();
+
+            if (entries.length === 0) {
+                container.innerHTML = `<div style="text-align:center; padding: 30px; color: #cbd5e1; font-size: 13px;">尚無紀錄</div>`;
+                return;
+            }
+
+            entries.forEach(([sku, qty]) => {
+                const row = document.createElement('div');
+                row.className = 'item-row';
+                row.onclick = () => autoFill(sku);
+                row.innerHTML = `
+                    <div>
+                        <div class="sku-name">${sku}</div>
+                        <div class="sku-hint">點擊回填</div>
+                    </div>
+                    <div class="qty-val" style="color: ${qty<0?'var(--danger)':'var(--text)'}">${qty}</div>
+                `;
+                container.appendChild(row);
+            });
+        }
+
+        async function startScanner() {
+            document.getElementById('scanner-view').style.display = 'flex';
+            scanner = new Html5Qrcode("reader");
+            try {
+                await scanner.start({ facingMode: "environment" }, { fps: 20, qrbox: 220 }, (text) => {
+                    document.getElementById('sku-input').value = text;
+                    stopScanner();
+                });
+            } catch (e) {
+                alert("相機異常，請檢查權限");
+                stopScanner();
+            }
+        }
+
+        function stopScanner() {
+            if (scanner) {
+                scanner.stop().then(() => {
+                    document.getElementById('scanner-view').style.display = 'none';
+                }).catch(() => {
+                    document.getElementById('scanner-view').style.display = 'none';
+                });
+            }
+        }
+
+        function toggleExport(show) {
+            if (show) {
+                let csv = "\uFEFF料號,庫存量\n";
+                Object.entries(stock).forEach(([s, q]) => csv += `"${s}",${q}\n`);
+                document.getElementById('export-text').value = csv;
+                document.getElementById('modal-view').style.display = 'flex';
+            } else {
+                document.getElementById('modal-view').style.display = 'none';
+            }
+        }
+
+        function copyCSV() {
+            const area = document.getElementById('export-text');
+            area.select();
+            document.execCommand('copy');
+            popToast("📋 已複製");
+        }
+
+        function clearAll() {
+            if (confirm("確定刪除所有本機資料？")) {
+                stock = {};
+                save();
+                renderList();
+                popToast("🗑️ 已清空");
+            }
+        }
+
+        function popToast(msg) {
+            const t = document.getElementById('toast');
+            t.innerText = msg;
+            t.style.opacity = "1";
+            setTimeout(() => t.style.opacity = "0", 1500);
+        }
+    </script>
+</body>
+</html>
