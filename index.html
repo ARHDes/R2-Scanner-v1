@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>多人雲端倉庫助手 V13.8</title>
+    <title>多人雲端倉庫助手 V13.9</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -28,8 +28,8 @@
         <div class="bg-white rounded-3xl p-8 w-full max-w-sm shadow-2xl border-4 border-blue-400">
             <h2 class="text-2xl font-black mb-2 text-slate-800 tracking-tight">工號登錄</h2>
             <p class="text-slate-500 text-sm mb-6 font-medium">請輸入員工編號以開始作業</p>
-            <input type="text" id="operator-name-input" placeholder="請輸入工號" class="w-full border-2 border-slate-100 rounded-xl px-4 py-3 mb-4 outline-none focus:border-blue-500 text-center font-bold text-lg">
-            <button onclick="saveOperatorName()" class="w-full bg-blue-600 text-white py-4 rounded-xl font-bold shadow-lg active:scale-95 transition-all text-center">確認進入</button>
+            <input type="text" id="operator-name-input" placeholder="請輸入工號" class="w-full border-2 border-slate-100 rounded-xl px-4 py-3 mb-4 outline-none focus:border-blue-500 text-center font-bold text-lg text-center">
+            <button onclick="saveOperatorName()" class="w-full bg-blue-600 text-white py-4 rounded-xl font-bold shadow-lg active:scale-95 transition-all">確認進入系統</button>
         </div>
     </div>
 
@@ -49,7 +49,7 @@
     </nav>
 
     <main class="max-w-md mx-auto p-4 space-y-4">
-        <!-- Tab 切換 -->
+        <!-- 分頁切換 -->
         <div class="flex bg-white rounded-xl p-1 shadow-sm border border-slate-100 text-center">
             <button onclick="switchTab('action')" id="tab-action" class="flex-1 py-2 text-sm font-bold tab-active transition-all">操作頁面</button>
             <button onclick="switchTab('stock')" id="tab-stock" class="flex-1 py-2 text-sm font-bold text-slate-400 transition-all">現存庫存</button>
@@ -58,7 +58,7 @@
 
         <!-- A. 操作頁面 -->
         <div id="section-action" class="space-y-4 animate-in fade-in duration-300">
-            <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 space-y-4">
+            <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 space-y-4 text-left">
                 <div class="flex justify-between items-center px-1">
                     <div class="flex gap-2 p-1 bg-slate-50 rounded-xl flex-1 mr-4">
                         <button onclick="setMode('IN')" id="mode-in" class="flex-1 py-2 rounded-lg bg-blue-600 text-white font-bold text-xs shadow-md">入庫</button>
@@ -68,33 +68,35 @@
                     <button onclick="resetActionFields()" class="text-blue-500 text-[10px] font-bold border-b border-blue-200 pb-0.5 active:text-blue-700">重設內容</button>
                 </div>
                 
-                <div class="space-y-3 relative text-left">
-                    <div class="grid grid-cols-2 gap-3">
+                <div class="space-y-3 relative">
+                    <div class="grid grid-cols-2 gap-3 text-left">
                         <div class="space-y-1">
                             <label class="text-[10px] font-bold text-slate-400 uppercase ml-1">機群</label>
-                            <select id="input-group" class="w-full bg-slate-50 border-0 rounded-xl px-4 py-3 text-sm font-bold text-slate-800 outline-none focus:ring-2 focus:ring-blue-500"></select>
+                            <select id="input-group" class="w-full bg-slate-50 border-0 rounded-xl px-4 py-3 text-sm font-bold text-slate-800 outline-none focus:ring-2 focus:ring-blue-500 text-left"></select>
                         </div>
                         <div class="space-y-1">
-                            <label class="text-[10px] font-bold text-slate-400 uppercase ml-1">Unit名稱</label>
-                            <input type="text" id="input-unit" placeholder="例如：PC" class="w-full bg-slate-50 border-0 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-blue-500 text-left">
+                            <label class="text-[10px] font-bold text-slate-400 uppercase ml-1 text-left text-left">Unit名稱</label>
+                            <input type="text" id="input-unit" placeholder="例如：PC" class="w-full bg-slate-50 border-0 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-blue-500 text-left text-left">
                         </div>
                     </div>
-                    <div class="grid grid-cols-2 gap-3">
+                    <div class="grid grid-cols-2 gap-3 text-left">
                         <div class="space-y-1">
-                            <label class="text-[10px] font-bold text-slate-400 uppercase ml-1">類別</label>
-                            <select id="input-category" class="w-full bg-slate-50 border-0 rounded-xl px-4 py-3 text-sm font-bold text-slate-800 outline-none focus:ring-2 focus:ring-blue-500"></select>
+                            <label class="text-[10px] font-bold text-slate-400 uppercase ml-1 text-left">類別</label>
+                            <select id="input-category" class="w-full bg-slate-50 border-0 rounded-xl px-4 py-3 text-sm font-bold text-slate-800 outline-none focus:ring-2 focus:ring-blue-500 text-left"></select>
                         </div>
                         <div class="space-y-1 text-left">
                             <label class="text-[10px] font-bold text-slate-400 uppercase ml-1 text-left">位置 / 用途</label>
                             <input type="text" id="input-usage" placeholder="備註位置..." class="w-full bg-slate-50 border-0 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-blue-500 text-left">
                         </div>
                     </div>
+                    
                     <div class="space-y-1 text-left">
                         <label class="text-[10px] font-bold text-slate-400 uppercase ml-1">型號 (Model)</label>
                         <input type="text" id="input-model" placeholder="零件規格型號..." class="w-full bg-slate-50 border-0 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-blue-500 font-mono text-left">
                     </div>
+
                     <div class="space-y-1 text-left">
-                        <label class="text-[10px] font-bold text-slate-400 uppercase ml-1 text-left">料號 / 條碼</label>
+                        <label class="text-[10px] font-bold text-slate-400 uppercase ml-1">料號 / 條碼</label>
                         <div class="flex gap-2">
                             <div class="relative flex-1">
                                 <input type="text" id="input-sku" oninput="onSkuTyping(this.value)" placeholder="搜尋或掃描料號..." class="w-full bg-slate-50 border-0 rounded-xl pl-4 pr-10 py-3 text-sm outline-none focus:ring-2 focus:ring-blue-500 font-mono text-left" autocomplete="off">
@@ -106,11 +108,12 @@
                         </div>
                         <div id="sku-suggestions" class="absolute left-0 right-0 bg-white border border-slate-200 rounded-xl shadow-xl z-50 mt-1 hidden max-h-60 overflow-y-auto hide-scroll text-left"></div>
                     </div>
+
                     <div class="space-y-1 text-center">
                         <label class="text-[10px] font-bold text-slate-400 uppercase ml-1 text-left">異動數量</label>
                         <div class="flex items-center bg-slate-50 rounded-xl p-1 text-center">
                             <button onclick="stepQty(-1)" class="w-12 h-10 bg-white rounded-lg shadow-sm font-bold text-xl active:bg-slate-100">-</button>
-                            <input type="number" id="input-qty" value="1" class="flex-1 bg-transparent text-center font-black text-xl outline-none text-center">
+                            <input type="number" id="input-qty" value="1" class="flex-1 bg-transparent text-center font-black text-xl outline-none">
                             <button onclick="stepQty(1)" class="w-12 h-10 bg-white rounded-lg shadow-sm font-bold text-xl active:bg-slate-100">+</button>
                         </div>
                     </div>
@@ -122,19 +125,19 @@
         <!-- B. 庫存分頁 -->
         <div id="section-stock" class="hidden space-y-4 animate-in fade-in duration-300">
             <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 space-y-3 text-left">
-                <div class="flex justify-between items-center px-1">
-                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-black">條件篩選</span>
+                <div class="flex justify-between items-center px-1 text-left">
+                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-black text-left">條件篩選</span>
                     <div class="flex gap-4 items-center">
                         <button onclick="resetStockFilters()" class="text-orange-500 text-[10px] font-bold border-b border-orange-200 pb-0.5 active:text-orange-700">清除篩選</button>
                         <button onclick="openImportModal()" class="text-blue-600 text-[10px] font-bold border-b border-blue-200 pb-0.5">文字匯入</button>
                     </div>
                 </div>
-                <div class="grid grid-cols-2 gap-2 text-left text-xs">
-                    <select id="filter-group" onchange="onFilterGroupChange()" class="bg-slate-50 border-0 rounded-lg px-3 py-2 font-bold outline-none focus:ring-1 focus:ring-blue-500 shadow-inner font-mono"></select>
-                    <select id="filter-unit" onchange="onFilterUnitChange()" class="bg-slate-50 border-0 rounded-lg px-3 py-2 font-bold outline-none focus:ring-1 focus:ring-blue-500 shadow-inner font-mono"></select>
+                <div class="grid grid-cols-2 gap-2 text-left text-xs text-left text-left">
+                    <select id="filter-group" onchange="onFilterGroupChange()" class="bg-slate-50 border-0 rounded-lg px-3 py-2 font-bold outline-none focus:ring-1 focus:ring-blue-500 shadow-inner font-mono text-left"></select>
+                    <select id="filter-unit" onchange="onFilterUnitChange()" class="bg-slate-50 border-0 rounded-lg px-3 py-2 font-bold outline-none focus:ring-1 focus:ring-blue-500 shadow-inner font-mono text-left"></select>
                 </div>
                 <div class="grid grid-cols-1 text-xs text-left">
-                    <select id="filter-category" onchange="applyFilters()" class="w-full bg-slate-50 border-0 rounded-lg px-3 py-2.5 font-bold outline-none focus:ring-1 focus:ring-blue-500 shadow-inner"></select>
+                    <select id="filter-category" onchange="applyFilters()" class="w-full bg-slate-50 border-0 rounded-lg px-3 py-2.5 font-bold outline-none focus:ring-1 focus:ring-blue-500 shadow-inner text-left"></select>
                 </div>
                 <div class="relative">
                     <input type="text" id="filter-usage" oninput="toggleSearchClearBtn(this.value); applyFilters();" placeholder="搜尋型號、料號、位置關鍵字..." class="w-full bg-slate-50 border-0 rounded-lg pl-3 pr-10 py-2.5 text-xs font-bold outline-none focus:ring-1 focus:ring-blue-500 shadow-inner text-left">
@@ -143,7 +146,7 @@
                     </button>
                 </div>
             </div>
-            <div id="stock-list" class="space-y-2"></div>
+            <div id="stock-list" class="space-y-2 text-left"></div>
         </div>
 
         <!-- C. 歷史紀錄 -->
@@ -151,52 +154,52 @@
     </main>
 
     <!-- 彈窗模組 -->
-    <div id="scanner-view" class="fixed inset-0 bg-black z-[6000] hidden flex flex-col">
-        <div class="bg-black/60 p-6 flex justify-between items-center text-white">
-            <div class="font-black tracking-tight text-left">料號條碼掃描</div>
-            <button onclick="stopScanner()" class="bg-white/10 p-2 rounded-full active:bg-white/20"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
-        </div>
-        <div id="reader" class="flex-1 bg-black"></div>
-        <div class="p-10 bg-black/80 text-center text-center">
-            <p class="text-white/40 text-[10px] font-bold mb-4 uppercase tracking-widest text-center">請將長形條碼置於框內</p>
-            <button onclick="stopScanner()" class="w-full bg-red-600 text-white py-4 rounded-2xl font-black active:scale-95 transition-transform text-center">關閉相機</button>
-        </div>
-    </div>
-
     <div id="comment-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[4800] hidden flex items-center justify-center p-6 text-center" onclick="closeCommentModal()">
-        <div class="bg-white w-full max-w-sm rounded-3xl p-6 space-y-4 shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-200 text-left text-left" onclick="event.stopPropagation()">
-            <div class="text-center font-black text-center text-center"><h3 class="text-lg text-slate-800 tracking-tight text-center">紀錄備註 (Comment)</h3><p class="text-[10px] text-slate-400 mt-1 text-center">選填內容，將顯示於歷史日誌中</p></div>
+        <div class="bg-white w-full max-w-sm rounded-3xl p-6 space-y-4 shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-200 text-left" onclick="event.stopPropagation()">
+            <div class="text-center font-black"><h3 class="text-lg text-slate-800 tracking-tight text-center">紀錄備註 (Comment)</h3><p class="text-[10px] text-slate-400 mt-1">選填內容，將顯示於歷史日誌中</p></div>
             <textarea id="transaction-comment" placeholder="輸入異動原因..." class="w-full h-24 bg-slate-50 border border-slate-200 rounded-2xl p-3 text-sm outline-none focus:border-blue-500 text-left"></textarea>
-            <div class="flex gap-3 text-center"><button onclick="closeCommentModal()" class="flex-1 py-3 bg-slate-100 rounded-xl font-bold text-slate-500 text-sm active:bg-slate-200 transition-colors text-center text-center">取消</button><button onclick="confirmTransactionWithComment()" class="flex-1 py-3 bg-blue-600 text-white rounded-xl font-bold text-sm shadow-lg active:scale-95 transition-all text-center text-center">確認送出</button></div>
+            <div class="flex gap-3 text-center"><button onclick="closeCommentModal()" class="flex-1 py-3 bg-slate-100 rounded-xl font-bold text-slate-500 text-sm active:bg-slate-200 transition-colors">取消</button><button onclick="confirmTransactionWithComment()" class="flex-1 py-3 bg-blue-600 text-white rounded-xl font-bold text-sm shadow-lg active:scale-95 transition-all text-center">確認送出</button></div>
         </div>
     </div>
 
-    <div id="context-picker-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[4500] hidden flex items-center justify-center p-6 text-center" onclick="closeContextPicker()">
+    <div id="context-picker-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[4500] hidden flex items-center justify-center p-6 text-center text-center" onclick="closeContextPicker()">
         <div class="bg-white w-full max-w-sm rounded-3xl p-6 space-y-4 shadow-2xl animate-in fade-in zoom-in duration-200 text-left text-left" onclick="event.stopPropagation()">
-            <div class="text-center font-black text-center text-center text-center"><h3 id="picker-title" class="text-lg text-slate-800 tracking-tight text-center text-center">機台用途選取</h3><p id="picker-desc" class="text-[10px] text-slate-400 mt-1 text-center text-center text-center">此為共用料號請選取機台用途</p></div>
+            <div class="text-center font-black text-center text-center"><h3 id="picker-title" class="text-lg text-slate-800 tracking-tight text-center text-center text-center">機台用途選取</h3><p id="picker-desc" class="text-[10px] text-slate-400 mt-1 text-center text-center text-center text-center">此為共用料號請選取機台用途</p></div>
             <div id="context-options-list" class="space-y-2 max-h-64 overflow-y-auto pr-1 hide-scroll font-sans text-left text-left"></div>
-            <div id="admin-full-delete-zone" class="hidden pt-2 border-t border-slate-100 text-center"><button onclick="executeFullDeleteFromPicker()" class="w-full py-3 bg-red-50 text-red-600 rounded-xl font-bold text-xs active:bg-red-100 transition-colors text-center">永久徹底刪除整個料號</button></div>
+            <div id="admin-full-delete-zone" class="hidden pt-2 border-t border-slate-100 text-center text-center"><button onclick="executeFullDeleteFromPicker()" class="w-full py-3 bg-red-50 text-red-600 rounded-xl font-bold text-xs active:bg-red-100 transition-colors">永久徹底刪除整個料號</button></div>
             <button onclick="closeContextPicker()" class="w-full py-3 bg-slate-100 rounded-xl font-bold text-slate-500 text-sm active:bg-slate-200 transition-colors text-center text-center">取消</button>
         </div>
     </div>
 
-    <div id="confirm-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-[4000] hidden flex items-center justify-center p-6 text-left">
+    <div id="confirm-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-[4000] hidden flex items-center justify-center p-6 text-left text-left">
         <div class="bg-white w-full max-w-xs rounded-3xl p-6 space-y-4 shadow-2xl text-left text-left">
             <h3 id="confirm-title" class="text-lg font-black tracking-tight text-slate-800 text-center text-center text-center">操作確認</h3>
             <p id="confirm-modal-msg" class="text-xs text-slate-500 leading-relaxed text-left text-left text-left"></p>
-            <div id="confirm-standard-actions" class="flex flex-col gap-2 pt-2 text-center text-center text-center text-center"></div>
+            <div id="confirm-standard-actions" class="flex flex-col gap-2 pt-2 text-center text-center text-center"></div>
         </div>
     </div>
 
     <div id="import-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[2000] hidden flex items-center justify-center p-6 text-left text-left" onclick="closeImportModal()">
-        <div class="bg-white w-full max-w-md rounded-3xl p-6 space-y-4 shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-300 text-left text-left text-left" onclick="event.stopPropagation()">
-            <div class="text-left text-left text-left text-left"><h3 class="text-xl font-black text-slate-800 uppercase">智慧文字匯入</h3><p class="text-[10px] text-slate-400 mt-1 leading-relaxed text-left text-left">格式：機群,Unit,類別,位置,料號,數量,型號</p></div>
-            <textarea id="import-text-area" placeholder="CSCR,PC,CYLINDER,Clamp,R22250141F80,0,MODEL-ABC" class="w-full h-48 bg-slate-50 border-2 border-dashed border-slate-200 rounded-xl p-3 text-xs font-mono outline-none focus:border-blue-500 text-left"></textarea>
-            <div class="flex gap-3 text-center text-center text-center text-center text-center text-center"><button onclick="closeImportModal()" class="flex-1 py-3 bg-slate-100 rounded-xl font-bold text-xs text-slate-500 active:bg-slate-200 transition-colors text-center text-center">取消</button><button onclick="processPastedText()" class="flex-1 py-3 bg-blue-600 text-white rounded-xl font-bold text-xs shadow-lg active:scale-95 transition-transform text-center text-center">開始匯入</button></div>
+        <div class="bg-white w-full max-w-md rounded-3xl p-6 space-y-4 shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-300 text-left text-left" onclick="event.stopPropagation()">
+            <div class="text-left text-left text-left"><h3 class="text-xl font-black text-slate-800 uppercase">智慧文字匯入</h3><p class="text-[10px] text-slate-400 mt-1 leading-relaxed">格式：機群,Unit,類別,位置,料號,數量,型號</p></div>
+            <textarea id="import-text-area" placeholder="CSCR,PC,CYLINDER,Clamp,SKU,0,MODEL" class="w-full h-48 bg-slate-50 border-2 border-dashed border-slate-200 rounded-xl p-3 text-xs font-mono outline-none focus:border-blue-500 text-left text-left text-left"></textarea>
+            <div class="flex gap-3 text-center text-center text-center text-center text-center"><button onclick="closeImportModal()" class="flex-1 py-3 bg-slate-100 rounded-xl font-bold text-xs text-slate-500 active:bg-slate-200 transition-colors text-center text-center">取消</button><button onclick="processPastedText()" class="flex-1 py-3 bg-blue-600 text-white rounded-xl font-bold text-xs shadow-lg active:scale-95 transition-transform text-center text-center text-center">開始匯入</button></div>
         </div>
     </div>
 
-    <div id="toast" class="fixed bottom-10 left-1/2 -translate-x-1/2 bg-emerald-500 text-white px-6 py-3 rounded-full text-[12px] font-bold opacity-0 transition-all z-[7000] pointer-events-none shadow-2xl text-center flex items-center gap-2 text-center"></div>
+    <div id="scanner-view" class="fixed inset-0 bg-black z-[6000] hidden flex flex-col text-left">
+        <div class="bg-black/60 p-6 flex justify-between items-center text-white text-left">
+            <div class="font-black tracking-tight text-left">條碼掃描</div>
+            <button onclick="stopScanner()" class="bg-white/10 p-2 rounded-full active:bg-white/20 text-center"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+        </div>
+        <div id="reader" class="flex-1 bg-black text-left"></div>
+        <div class="p-10 bg-black/80 text-center text-center text-center">
+            <p class="text-white/40 text-[10px] font-bold mb-4 uppercase tracking-widest text-center text-center">長形條碼請置於框內</p>
+            <button onclick="stopScanner()" class="w-full bg-red-600 text-white py-4 rounded-2xl font-black active:scale-95 transition-transform text-center">關閉相機</button>
+        </div>
+    </div>
+
+    <div id="toast" class="fixed bottom-10 left-1/2 -translate-x-1/2 bg-emerald-500 text-white px-6 py-3 rounded-full text-[12px] font-bold opacity-0 transition-all z-[7000] pointer-events-none shadow-2xl text-center flex items-center gap-2 text-center text-center text-center"></div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
@@ -239,7 +242,7 @@
             location.reload();
         };
 
-        window.logout = () => { if (confirm("確定要登出換人嗎？")) { localStorage.removeItem('ims_op_v12_final'); location.reload(); } };
+        window.logout = () => { if (confirm("確定要登出並換人嗎？")) { localStorage.removeItem('ims_op_v12_final'); location.reload(); } };
 
         window.toggleAdminMode = () => {
             adminModeActive = !adminModeActive;
@@ -254,7 +257,6 @@
             onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'categories', 'all'), (s) => {
                 categories = s.exists() ? s.data().list : ['培林', '氣壓缸'];
                 document.getElementById('input-category').innerHTML = '<option value="" disabled selected>類別選單</option>' + categories.map(c => `<option value="${c}">${c}</option>`).join('');
-                renderInitialCats();
             });
             onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'groups', 'all'), (s) => {
                 machineGroups = s.exists() ? s.data().list : ['CSCR', 'CST', 'CV'];
@@ -272,11 +274,11 @@
             });
         }
 
-        // --- 核心匯入修正 V13.8 ---
+        // --- 核心匯入徹底修復 V13.8 ---
         window.processPastedText = async () => {
             const textInput = document.getElementById('import-text-area');
             const text = textInput.value.trim();
-            if (!text) return showToast("⚠️ 請貼入文字內容");
+            if (!text) return showToast("⚠️ 請貼入文字");
 
             showToast("⏳ 執行智慧合併中...");
             const rows = text.split(/\r?\n/).filter(r => r.trim() !== "");
@@ -290,14 +292,13 @@
                     if (c.length < 5) continue;
                     // 機群,Unit,類別,位置,料號,數量,型號
                     const [g, u, cat, us, sku, qtyS, model] = c;
-                    const qty = parseInt(qtyS) || 0;
                     if (!sku) continue;
 
                     if (!inputDataMap.has(sku)) {
-                        inputDataMap.set(sku, { groups: new Set([g]), units: new Set([u]), usages: new Set([us]), category: cat, qty: qty, model: model || "" });
+                        inputDataMap.set(sku, { groups: new Set([g]), units: new Set([u]), usages: new Set([us || ""]), category: cat, qty: parseInt(qtyS) || 0, model: model || "" });
                     } else {
                         const m = inputDataMap.get(sku);
-                        m.groups.add(g); m.units.add(u); m.usages.add(us); m.qty = qty; if(model) m.model = model;
+                        m.groups.add(g); m.units.add(u); m.usages.add(us || ""); m.qty = parseInt(qtyS) || 0; if(model) m.model = model;
                     }
                 }
 
@@ -325,9 +326,8 @@
                 }
                 await batch.commit();
                 showToast("✅ 智慧匯入完成");
-                textInput.value = "";
-                closeImportModal();
-            } catch (e) { console.error(e); showToast("❌ 解析出錯，請檢查格式"); }
+                textInput.value = ""; closeImportModal();
+            } catch (e) { showToast("❌ 解析錯誤，請檢查格式"); console.error(e); }
         };
 
         window.confirmTransactionWithComment = () => {
@@ -345,7 +345,6 @@
             executeCommit(sku, group, unit, cat, usage, qty, model, comment);
         };
 
-        // --- 其餘系統函數 ---
         async function executeCommit(sku, group, unit, cat, usage, qty, model, comment) {
             const btn = document.getElementById('btn-submit'); btn.disabled = true;
             try {
@@ -358,10 +357,41 @@
                 else { newQty = oldQty - qty; }
                 await setDoc(ref, { sku, group, unit, qty: newQty, category: cat, usage, model, lastOp: operatorId, time: serverTimestamp() });
                 await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'history'), { sku, type: currentMode, change: qty, after: newQty, diff, op: operatorId, group, unit, timestamp: serverTimestamp(), comment: comment || "" });
-                showToast(`✅ ${sku} 同步成功`); 
-                resetActionFields(); // 自動重設 V13.1
-            } catch (e) { showToast("❌ 提交失敗"); }
+                showToast(`✅ ${sku} 同步成功`); resetActionFields();
+            } catch (e) { showToast("❌ 失敗"); }
             finally { btn.disabled = false; setMode(currentMode); }
+        }
+
+        window.submitTransaction = async () => {
+            const sku = document.getElementById('input-sku').value.trim();
+            const model = document.getElementById('input-model').value.trim();
+            const group = document.getElementById('input-group').value;
+            const unit = document.getElementById('input-unit').value.trim();
+            const cat = document.getElementById('input-category').value;
+            const usage = document.getElementById('input-usage').value.trim();
+            const qty = parseInt(document.getElementById('input-qty').value) || 0;
+            if (!sku || !group || !unit || !cat || qty < 0) return showToast("⚠️ 請完整填寫表單");
+            const existing = window.cachedStock.find(i => i.sku === sku);
+            if (existing) {
+                const gL = existing.group.split(",").map(s => s.trim()); const uL = existing.unit.split(",").map(s => s.trim()); const usL = (existing.usage || "").split(",").map(s => s.trim());
+                let match = false;
+                for(let i=0; i<Math.max(gL.length, uL.length, usL.length); i++){ if(gL[i] === group && uL[i] === unit && (usL[i]||"") === usage) match = true; }
+                if (!match || existing.category !== cat || (existing.model||"") !== model) {
+                    pendingTransaction = { sku, group, unit, cat, usage, qty, model, existing };
+                    showConfirmModal("屬性衝突", `與雲端環境不符，是否設為共用？`, [
+                        { text: "設為共用", color: "bg-blue-600", action: () => { closeConfirmModal(); openCommentModal(sku, group, unit, cat, usage, qty, model, 'MERGE'); } },
+                        { text: "強制覆蓋", color: "bg-amber-500", action: () => { closeConfirmModal(); openCommentModal(sku, group, unit, cat, usage, qty, model, 'OVERWRITE'); } },
+                        { text: "取消", color: "bg-slate-100", textColor: "text-slate-500", action: () => closeConfirmModal() }
+                    ]); return;
+                }
+            }
+            openCommentModal(sku, group, unit, cat, usage, qty, model, null);
+        };
+
+        function openCommentModal(sku, group, unit, cat, usage, qty, model, conflictAction) {
+            pendingTransaction = { sku, group, unit, cat, usage, qty, model, conflictAction };
+            document.getElementById('transaction-comment').value = "";
+            document.getElementById('comment-modal').classList.remove('hidden');
         }
 
         window.startScanner = async () => {
@@ -370,10 +400,9 @@
             await html5QrCode.start({ facingMode: "environment" }, config, (t) => { document.getElementById('input-sku').value = t; document.getElementById('btn-clear-sku').classList.add('show'); window.onSkuTyping(t); stopScanner(); }).catch(() => stopScanner());
         };
         window.stopScanner = () => { if(html5QrCode) html5QrCode.stop().then(() => document.getElementById('scanner-view').classList.add('hidden')).catch(() => document.getElementById('scanner-view').classList.add('hidden')); else document.getElementById('scanner-view').classList.add('hidden'); };
-        
         window.deleteHistoryItem = async (id, data) => {
             if (!adminModeActive) return;
-            if (!confirm(`確定回退庫存並刪除紀錄？\n差值：${data.diff || data.change}`)) return;
+            if (!confirm(`確定回退庫存並刪除？\n差值：${data.diff || data.change}`)) return;
             try {
                 await runTransaction(db, async (tx) => {
                     const sRef = doc(db, 'artifacts', appId, 'public', 'data', 'stock', data.sku);
@@ -387,56 +416,10 @@
                     tx.delete(doc(db, 'artifacts', appId, 'public', 'data', 'history', id));
                     tx.update(sRef, { qty: rb, lastOp: `${operatorId}(Rollback)` });
                 });
-                showToast("🗑️ 已成功回退");
+                showToast("🗑️ 紀錄已回退");
             } catch (e) { showToast(`❌ 失敗: ${e}`); }
         };
 
-        // --- 視覺與連動 ---
-        window.resetActionFields = () => {
-            document.getElementById('input-sku').value = ""; document.getElementById('input-model').value = ""; document.getElementById('input-unit').value = ""; document.getElementById('input-usage').value = ""; document.getElementById('input-qty').value = "1";
-            document.getElementById('input-group').selectedIndex = 0; document.getElementById('input-category').selectedIndex = 0;
-            document.getElementById('btn-clear-sku').classList.remove('show'); document.getElementById('sku-suggestions').classList.add('hidden');
-        };
-
-        window.submitTransaction = async () => {
-            const sku = document.getElementById('input-sku').value.trim();
-            const model = document.getElementById('input-model').value.trim();
-            const group = document.getElementById('input-group').value;
-            const unit = document.getElementById('input-unit').value.trim();
-            const cat = document.getElementById('input-category').value;
-            const usage = document.getElementById('input-usage').value.trim();
-            const qty = parseInt(document.getElementById('input-qty').value) || 0;
-            if (!sku || !group || !unit || !cat || qty < 0) return showToast("⚠️ 請填寫完整表單");
-            const existing = window.cachedStock.find(i => i.sku === sku);
-            if (existing) {
-                const gL = existing.group.split(",").map(s => s.trim());
-                const uL = existing.unit.split(",").map(s => s.trim());
-                const usL = (existing.usage || "").split(",").map(s => s.trim());
-                let match = false;
-                for(let i=0; i<Math.max(gL.length, uL.length, usL.length); i++){ if(gL[i] === group && uL[i] === unit && (usL[i]||"") === usage) match = true; }
-                if (!match || existing.category !== cat || (existing.model||"") !== model) {
-                    pendingTransaction = { sku, group, unit, cat, usage, qty, model, existing };
-                    showConfirmModal("建立共用關係", `環境衝突，是否設為共用？`, [
-                        { text: "設為共用", color: "bg-blue-600", action: () => { closeConfirmModal(); openCommentModal(sku, group, unit, cat, usage, qty, model, 'MERGE'); } },
-                        { text: "強制覆蓋", color: "bg-amber-500", action: () => { closeConfirmModal(); openCommentModal(sku, group, unit, cat, usage, qty, model, 'OVERWRITE'); } },
-                        { text: "取消", color: "bg-slate-100", textColor: "text-slate-500", action: () => closeConfirmModal() }
-                    ]); return;
-                }
-            }
-            openCommentModal(sku, group, unit, cat, usage, qty, model, null);
-        };
-
-        function refreshInitialFilters() {
-            const data = window.cachedStock || [];
-            const gS = new Set(); data.forEach(i => (i.group||"").split(",").forEach(s => gS.add(s.trim())));
-            document.getElementById('filter-group').innerHTML = '<option value="">所有機群</option>' + Array.from(gS).filter(Boolean).sort().map(g => `<option value="${g}">${g}</option>`).join('');
-            renderInitialCats(); updateUnitDropdown(); updateCategoryDropdown();
-        }
-        function renderInitialCats() {
-            const data = window.cachedStock || [];
-            const cSet = new Set(data.map(i => i.category).filter(Boolean));
-            document.getElementById('filter-category').innerHTML = '<option value="">所有類別</option>' + Array.from(cSet).sort().map(c => `<option value="${c}">${c}</option>`).join('');
-        }
         window.onFilterGroupChange = () => { document.getElementById('filter-unit').value = ""; document.getElementById('filter-category').value = ""; updateUnitDropdown(); updateCategoryDropdown(); applyFilters(); };
         window.onFilterUnitChange = () => { document.getElementById('filter-category').value = ""; updateCategoryDropdown(); applyFilters(); };
         function updateUnitDropdown() {
@@ -449,14 +432,15 @@
             data.forEach(i => { const gL = (i.group || "").split(",").map(s => s.trim()); const uL = (i.unit || "").split(",").map(s => s.trim()); if (!selG && !selU) { if(i.category) cSet.add(i.category); } else { let match = false; uL.forEach((u, idx) => { if ((!selG || (gL[idx]||gL[0]) === selG) && (!selU || u === selU)) match = true; }); if (match && i.category) cSet.add(i.category); } });
             document.getElementById('filter-category').innerHTML = '<option value="">所有類別</option>' + Array.from(cSet).filter(Boolean).sort().map(c => `<option value="${c}">${c}</option>`).join('');
         }
+        function refreshInitialFilters() { const data = window.cachedStock || []; const gS = new Set(); data.forEach(i => (i.group||"").split(",").forEach(s => gS.add(s.trim()))); document.getElementById('filter-group').innerHTML = '<option value="">所有機群</option>' + Array.from(gS).filter(Boolean).sort().map(g => `<option value="${g}">${g}</option>`).join(''); const cSet = new Set(data.map(i => i.category).filter(Boolean)); document.getElementById('filter-category').innerHTML = '<option value="">所有類別</option>' + Array.from(cSet).sort().map(c => `<option value="${c}">${c}</option>`).join(''); updateUnitDropdown(); updateCategoryDropdown(); }
         window.applyFilters = () => { const gF = document.getElementById('filter-group').value; const uF = document.getElementById('filter-unit').value; const cF = document.getElementById('filter-category').value; const search = document.getElementById('filter-usage').value.trim().toLowerCase(); let filtered = window.cachedStock || []; if (gF) filtered = filtered.filter(i => (i.group || "").includes(gF)); if (uF) filtered = filtered.filter(i => (i.unit || "").includes(uF)); if (cF) filtered = filtered.filter(i => i.category === cF); if (search) filtered = filtered.filter(i => (i.usage||'').toLowerCase().includes(search) || (i.sku||'').toLowerCase().includes(search) || (i.model||'').toLowerCase().includes(search) || (i.category||'').toLowerCase().includes(search)); renderStock(filtered); };
 
         function renderStock(data) {
-            const list = document.getElementById('stock-list'); if (!data.length) return list.innerHTML = '<div class="py-20 text-slate-300 text-xs text-center italic uppercase">無庫存數據</div>';
+            const list = document.getElementById('stock-list'); if (!data.length) return list.innerHTML = '<div class="py-20 text-slate-300 text-xs text-center italic uppercase">無匹配</div>';
             list.innerHTML = data.map(i => {
                 const gL = (i.group||"").split(",").map(s=>s.trim()); const uL = (i.unit||"").split(",").map(s=>s.trim());
                 const b = uL.map((u,idx) => `<span class="unit-badge">${(gL[idx]||gL[0])}_${u}</span>`).join('');
-                return `<div class="bg-white p-4 rounded-2xl border border-slate-100 flex justify-between items-center shadow-sm active:bg-slate-50 transition-all text-left" onclick="autoFillStock('${i.sku}')"><div class="flex-1 pr-2 text-left"><div class="mb-1 flex flex-wrap gap-1 text-left">${b}</div><div class="text-[10px] font-black text-blue-600 font-mono mb-0.5 uppercase tracking-tight">${i.model||'無型號紀錄'}</div><div class="font-black text-slate-800 text-sm font-mono leading-none break-all">${i.sku}</div><div class="text-[11px] text-slate-500 mt-2 font-black tracking-tight"><span class="text-slate-400 font-bold uppercase mr-1">${i.category}</span> | 位：${i.usage||'未註明'}</div></div><div class="flex items-center gap-3"><div class="text-xl font-black ${i.qty < 0 ? 'text-red-500' : 'text-slate-800'} font-mono">${i.qty}</div>${adminModeActive ? `<button onclick="event.stopPropagation(); deleteStockItem('${i.sku}')" class="p-2 bg-red-50 text-red-500 rounded-lg active:scale-90 shadow-sm"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>` : ''}</div></div>`;
+                return `<div class="bg-white p-4 rounded-2xl border border-slate-100 flex justify-between items-center shadow-sm active:bg-slate-50 transition-all text-left" onclick="autoFillStock('${i.sku}')"><div class="flex-1 pr-2 text-left"><div class="mb-1 flex flex-wrap gap-1">${b}</div><div class="text-[10px] font-black text-blue-600 font-mono mb-0.5 uppercase tracking-tight">${i.model||'無型號'}</div><div class="font-black text-slate-800 text-sm font-mono leading-none break-all">${i.sku}</div><div class="text-[11px] text-slate-500 mt-2 font-black tracking-tight"><span class="text-slate-400 font-bold uppercase mr-1">${i.category}</span> | 位：${i.usage||'未註明'}</div></div><div class="flex items-center gap-3"><div class="text-xl font-black ${i.qty < 0 ? 'text-red-500' : 'text-slate-800'} font-mono">${i.qty}</div>${adminModeActive ? `<button onclick="event.stopPropagation(); deleteStockItem('${i.sku}')" class="p-2 bg-red-50 text-red-500 rounded-lg active:scale-90"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>` : ''}</div></div>`;
             }).join('');
         }
         function renderHistory(logs) {
@@ -464,29 +448,32 @@
             list.innerHTML = logs.map(l => {
                 const tC = l.type === 'IN' ? 'text-blue-500' : (l.type === 'OUT' ? 'text-orange-500' : 'text-emerald-500');
                 let qD = `${l.type} ${l.change}`; if (l.type === 'COUNT' && l.diff !== undefined) { const dS = l.diff > 0 ? '+' : ''; const dC = l.diff > 0 ? 'text-blue-600' : (l.diff < 0 ? 'text-red-600' : 'text-slate-400'); qD = `盤點: ${l.after} <span class="${dC}">(差值: ${dS}${l.diff})</span>`; }
-                return `<div class="bg-white p-4 rounded-2xl border border-slate-50 shadow-sm text-[10px] space-y-1 relative text-left"><div class="flex justify-between items-start text-left"><div class="font-black text-slate-800 font-mono text-sm text-left">${l.sku}</div><div class="flex items-center gap-3"><div class="font-black ${tC} text-right uppercase text-left">${qD}</div>${adminModeActive ? `<button onclick="deleteHistoryItem('${l.id}', ${JSON.stringify(l).replace(/"/g, '&quot;')})" class="p-1.5 bg-red-50 text-red-500 rounded-lg active:scale-90"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>` : ''}</div></div><div class="text-slate-400 font-medium">工號: ${l.op} • ${l.timestamp ? new Date(l.timestamp.toMillis()).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}) : '...'}</div><div class="text-slate-500 font-mono">${l.group||''}_${l.unit||''}</div>${l.comment ? `<div class="mt-2 bg-blue-50/50 text-blue-600 p-2 rounded-lg italic font-bold">備註: ${l.comment}</div>` : ''}</div>`;
+                return `<div class="bg-white p-4 rounded-2xl border border-slate-50 shadow-sm text-[10px] space-y-1 relative text-left text-left"><div class="flex justify-between items-start text-left"><div class="font-black text-slate-800 font-mono text-sm">${l.sku}</div><div class="flex items-center gap-3"><div class="font-black ${tC} text-right uppercase text-left">${qD}</div>${adminModeActive ? `<button onclick="deleteHistoryItem('${l.id}', ${JSON.stringify(l).replace(/"/g, '&quot;')})" class="p-1.5 bg-red-50 text-red-500 rounded-lg active:scale-90"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>` : ''}</div></div><div class="text-slate-400 font-medium">工號: ${l.op} • ${l.timestamp ? new Date(l.timestamp.toMillis()).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}) : '...'}</div><div class="text-slate-500 font-mono">${l.group||''}_${l.unit||''}</div>${l.comment ? `<div class="mt-2 bg-blue-50/50 text-blue-600 p-2 rounded-lg italic font-bold text-left">備註: ${l.comment}</div>` : ''}</div>`;
             }).join('');
         }
 
+        window.resetActionFields = () => { document.getElementById('input-sku').value = ""; document.getElementById('input-model').value = ""; document.getElementById('input-unit').value = ""; document.getElementById('input-usage').value = ""; document.getElementById('input-qty').value = "1"; document.getElementById('input-group').selectedIndex = 0; document.getElementById('input-category').selectedIndex = 0; document.getElementById('btn-clear-sku').classList.remove('show'); document.getElementById('sku-suggestions').classList.add('hidden'); };
+        window.resetStockFilters = () => { document.getElementById('filter-group').selectedIndex = 0; updateUnitDropdown(); document.getElementById('filter-unit').selectedIndex = 0; updateCategoryDropdown(); document.getElementById('filter-category').selectedIndex = 0; document.getElementById('filter-usage').value = ""; document.getElementById('btn-clear-search').classList.remove('show'); applyFilters(); };
         window.clearSkuInput = () => { const input = document.getElementById('input-sku'); input.value = ""; document.getElementById('btn-clear-sku').classList.remove('show'); document.getElementById('sku-suggestions').classList.add('hidden'); input.focus(); };
         window.clearSearchInput = () => { const input = document.getElementById('filter-usage'); input.value = ""; document.getElementById('btn-clear-search').classList.remove('show'); applyFilters(); input.focus(); };
-        window.toggleSearchClearBtn = (val) => { document.getElementById('btn-clear-search').classList.toggle('show', val.length > 0); };
-        window.onSkuTyping = (v) => { document.getElementById('btn-clear-sku').classList.toggle('show', v.length > 0); const c = document.getElementById('sku-suggestions'); if (!v || !window.cachedStock) { c.classList.add('hidden'); return; } const m = window.cachedStock.filter(i => i.sku.toLowerCase().includes(v.toLowerCase())).slice(0, 8); if (m.length > 0) { c.innerHTML = m.map(i => `<div class="suggestion-item text-left"><div class="font-bold text-xs font-mono">${i.sku}</div><div class="text-[8px] text-slate-400 font-mono text-left">型號：${i.model||'無'} | 數量：${i.qty}</div></div>`).join(''); c.classList.remove('hidden'); } else c.classList.add('hidden'); };
+        window.toggleSearchClearBtn = (v) => { document.getElementById('btn-clear-search').classList.toggle('show', v.length > 0); };
+        window.onSkuTyping = (v) => { document.getElementById('btn-clear-sku').classList.toggle('show', v.length > 0); const c = document.getElementById('sku-suggestions'); if (!v || !window.cachedStock) { c.classList.add('hidden'); return; } const m = window.cachedStock.filter(i => i.sku.toLowerCase().includes(v.toLowerCase())).slice(0, 8); if (m.length > 0) { c.innerHTML = m.map(i => `<div class="suggestion-item text-left"><div class="font-bold text-xs font-mono">${i.sku}</div><div class="text-[8px] text-slate-400 font-mono">型號：${i.model||'無'} | 數量：${i.qty}</div></div>`).join(''); c.classList.remove('hidden'); } else c.classList.add('hidden'); };
         window.autoFillStock = (sku) => { const item = window.cachedStock.find(i => i.sku === sku); if (!item) return; const uL = (item.unit || "").split(",").map(u => u.trim()).filter(Boolean); const gL = (item.group || "").split(",").map(g => g.trim()).filter(Boolean); const usL = (item.usage || "").split(",").map(u => u.trim()).filter(Boolean); if (Math.max(uL.length, gL.length, usL.length) > 1) showContextPicker(item, gL, uL, usL, false); else applyContext(item.sku, gL[0]||"", uL[0]||"", item.category, usL[0]||"", item.model||""); };
         function applyContext(sku, g, u, cat, usage, model) { document.getElementById('input-sku').value = sku; document.getElementById('btn-clear-sku').classList.add('show'); document.getElementById('input-model').value = model; document.getElementById('input-group').value = g || ""; document.getElementById('input-unit').value = u; document.getElementById('input-category').value = cat || ""; document.getElementById('input-usage').value = usage; switchTab('action'); showToast(`已帶入版本：${g}_${u}`); }
-        function showContextPicker(item, groups, units, usages, isDeleteMode = false) { activePickerSku = item.sku; const list = document.getElementById('context-options-list'); list.innerHTML = ""; document.getElementById('picker-title').innerText = isDeleteMode ? "選擇要移除的環境" : "機台用途選取"; document.getElementById('admin-full-delete-zone').classList.toggle('hidden', !isDeleteMode); for (let i = 0; i < Math.max(groups.length, units.length, usages.length); i++) { const g = groups[i] || groups[0] || ""; const u = units[i] || units[0] || ""; const us = usages[i] || ""; const btn = document.createElement('button'); btn.className = `w-full p-4 border rounded-2xl text-left mb-2 active:scale-95 transition-transform ${isDeleteMode?'bg-red-50 border-red-100':'bg-slate-50 border-slate-200'}`; btn.innerHTML = `<div class="flex justify-between items-center text-[10px]"><div><span class="font-black ${isDeleteMode?'text-red-600':'text-blue-600'} uppercase font-mono tracking-tight">${g}_${u}</span><div class="text-slate-800 font-black mt-1.5 text-xs text-left">位：${us || '未註明'}</div></div><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="${isDeleteMode?'M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6':'M5 12h14M12 5l7 7-7 7'}"/></svg></div>`; btn.onclick = () => isDeleteMode ? executePartialDelete(item.sku, i) : (applyContext(item.sku, g, u, item.category, us, item.model||""), closeContextPicker()); list.appendChild(btn); } document.getElementById('context-picker-modal').classList.remove('hidden'); }
+        function showContextPicker(item, groups, units, usages, isDeleteMode = false) { activePickerSku = item.sku; const list = document.getElementById('context-options-list'); list.innerHTML = ""; document.getElementById('picker-title').innerText = isDeleteMode ? "選擇要移除的環境" : "機台用途選取"; document.getElementById('admin-full-delete-zone').classList.toggle('hidden', !isDeleteMode); for (let i = 0; i < Math.max(groups.length, units.length, usages.length); i++) { const g = groups[i] || groups[0] || ""; const u = units[i] || units[0] || ""; const us = usages[i] || ""; const btn = document.createElement('button'); btn.className = `w-full p-4 border rounded-2xl text-left mb-2 active:scale-95 transition-transform ${isDeleteMode?'bg-red-50 border-red-100':'bg-slate-50 border-slate-200'}`; btn.innerHTML = `<div class="flex justify-between items-center text-[10px]"><div><span class="font-black ${isDeleteMode?'text-red-600':'text-blue-600'} uppercase font-mono tracking-tight text-left">${g}_${u}</span><div class="text-slate-800 font-black mt-1.5 text-xs text-left">位：${us || '未註明'}</div></div><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="${isDeleteMode?'M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2':'M5 12h14M12 5l7 7-7 7'}"/></svg></div>`; btn.onclick = () => isDeleteMode ? executePartialDelete(item.sku, i) : (applyContext(item.sku, g, u, item.category, us, item.model||""), closeContextPicker()); list.appendChild(btn); } document.getElementById('context-picker-modal').classList.remove('hidden'); }
         async function executePartialDelete(sku, idx) { const item = window.cachedStock.find(i => i.sku === sku); const g = item.group.split(",").map(s => s.trim()); const u = item.unit.split(",").map(s => s.trim()); const us = (item.usage||"").split(",").map(s => s.trim()); g.splice(idx, 1); u.splice(idx, 1); if (us[idx] !== undefined) us.splice(idx, 1); await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'stock', sku), { ...item, group: g.join(", "), unit: u.join(", "), usage: us.join(", "), lastOp: operatorId }); showToast("已移除環境關聯"); closeContextPicker(); }
         window.executeFullDeleteFromPicker = () => { if(confirm(`徹底刪除整個料號 ${activePickerSku}？`)) { deleteStockItem(activePickerSku); closeContextPicker(); } };
         async function deleteStockItem(sku) { if(confirm(`徹底刪除料號 ${sku}？`)) { await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'stock', sku)); showToast(`🗑️ 已徹底刪除`); } }
         window.showConfirmModal = (t, m, a) => { document.getElementById('confirm-title').innerText = t; document.getElementById('confirm-modal-msg').innerHTML = m; const c = document.getElementById('confirm-standard-actions'); c.innerHTML = ""; a.forEach(x => { const b = document.createElement('button'); b.className = `w-full py-3 rounded-xl font-bold text-xs ${x.color} ${x.textColor || 'text-white'}`; b.innerText = x.text; b.onclick = x.action; c.appendChild(b); }); document.getElementById('confirm-modal').classList.remove('hidden'); };
         window.closeConfirmModal = () => document.getElementById('confirm-modal').classList.add('hidden');
-        window.closeCommentModal = () => document.getElementById('comment-modal').classList.add('hidden');
         window.closeContextPicker = () => document.getElementById('context-picker-modal').classList.add('hidden');
         window.toggleSettingsManager = (s) => document.getElementById('settings-modal').classList.toggle('hidden', !s);
-        window.setMode = (m) => { currentMode = m; ['IN','OUT','COUNT'].forEach(x => document.getElementById(`mode-${x.toLowerCase()}`).className = x === m ? 'flex-1 py-2 rounded-lg bg-blue-600 text-white font-bold text-xs shadow-md text-center' : 'flex-1 py-2 rounded-lg text-slate-400 font-bold text-xs text-center'); const btn = document.getElementById('btn-submit'); btn.innerText = m==='IN'?'確認入庫':(m==='OUT'?'確認出庫':'修正盤點'); btn.style.backgroundColor = m==='IN'?'#2563eb':(m==='OUT'?'#f97316':'#10b981'); };
+        window.openImportModal = () => document.getElementById('import-modal').classList.remove('hidden');
+        window.closeImportModal = () => document.getElementById('import-modal').classList.add('hidden');
+        function showToast(m) { const t = document.getElementById('toast'); t.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>${m}`; t.style.opacity = "1"; setTimeout(() => t.style.opacity = "0", 2500); }
+        window.setMode = (m) => { currentMode = m; ['IN','OUT','COUNT'].forEach(x => document.getElementById(`mode-${x.toLowerCase()}`).className = x === m ? 'flex-1 py-2 rounded-lg bg-blue-600 text-white font-bold text-xs shadow-md' : 'flex-1 py-2 rounded-lg text-slate-400 font-bold text-xs'); const btn = document.getElementById('btn-submit'); btn.innerText = m==='IN'?'確認入庫':(m==='OUT'?'確認出庫':'修正盤點'); btn.style.backgroundColor = m==='IN'?'#2563eb':(m==='OUT'?'#f97316':'#10b981'); };
         window.switchTab = (t) => { ['action','stock','history'].forEach(x => { document.getElementById(`section-${x}`).classList.toggle('hidden', x !== t); document.getElementById(`tab-${x}`).classList.toggle('tab-active', x === t); }); };
         window.stepQty = (v) => { const i = document.getElementById('input-qty'); i.value = Math.max(0, (parseInt(i.value) || 0) + v); };
-        function showToast(m) { const t = document.getElementById('toast'); t.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>${m}`; t.style.opacity = "1"; setTimeout(() => t.style.opacity = "0", 2500); }
         window.addNewCategory = async () => { const i = document.getElementById('new-category-name'); if (!i.value.trim()) return; await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'categories', 'all'), { list: [...categories, i.value.trim()] }); i.value = ""; };
         window.removeCategory = async (n) => { if (confirm(`移除類別 ${n}？`)) await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'categories', 'all'), { list: categories.filter(x => x !== n) }); };
         window.addNewGroup = async () => { const i = document.getElementById('new-group-name'); if (!i.value.trim()) return; await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'groups', 'all'), { list: [...machineGroups, i.value.trim()] }); i.value = ""; };
