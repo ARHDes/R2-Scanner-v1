@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>多人雲端倉庫助手 V12.1</title>
+    <title>多人雲端倉庫助手 V12.2</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -15,10 +15,12 @@
         .admin-glow { box-shadow: 0 0 15px rgba(245, 158, 11, 0.3); border: 1px solid rgba(245, 158, 11, 0.5); }
         .hide-scroll::-webkit-scrollbar { display: none; }
         .unit-badge { display: inline-block; background: #f1f5f9; color: #334155; padding: 2px 8px; border-radius: 6px; font-size: 10px; margin-right: 4px; font-weight: 900; letter-spacing: -0.2px; border: 1px solid #e2e8f0; }
-        
-        /* 清除按鈕動畫 */
         .clear-btn { opacity: 0; pointer-events: none; transition: all 0.2s; transform: scale(0.8); }
         .clear-btn.show { opacity: 1; pointer-events: auto; transform: scale(1); }
+        
+        /* 掃描框自定義樣式 */
+        #reader__scan_region { border-radius: 20px; overflow: hidden; }
+        #reader__dashboard { display: none !important; }
     </style>
 </head>
 <body class="bg-slate-50 min-h-screen pb-20 font-sans text-slate-900 text-left">
@@ -27,8 +29,8 @@
     <div id="setup-overlay" class="fixed inset-0 bg-blue-600 z-[1000] flex items-center justify-center p-6 hidden text-center">
         <div class="bg-white rounded-3xl p-8 w-full max-w-sm shadow-2xl border-4 border-blue-400">
             <h2 class="text-2xl font-black mb-2 text-slate-800 tracking-tight">工號登錄</h2>
-            <p class="text-slate-500 text-sm mb-6 font-medium text-center">請輸入員工編號以開始作業</p>
-            <input type="text" id="operator-name-input" placeholder="請輸入工號" class="w-full border-2 border-slate-100 rounded-xl px-4 py-3 mb-4 outline-none focus:border-blue-500 text-center font-bold text-lg text-center">
+            <p class="text-slate-500 text-sm mb-6 font-medium">請輸入員工編號以開始作業</p>
+            <input type="text" id="operator-name-input" placeholder="請輸入工號" class="w-full border-2 border-slate-100 rounded-xl px-4 py-3 mb-4 outline-none focus:border-blue-500 text-center font-bold text-lg">
             <button onclick="saveOperatorName()" class="w-full bg-blue-600 text-white py-4 rounded-xl font-bold shadow-lg active:scale-95 transition-all">確認進入系統</button>
         </div>
     </div>
@@ -49,7 +51,7 @@
     </nav>
 
     <main class="max-w-md mx-auto p-4 space-y-4">
-        <!-- 分頁切換 -->
+        <!-- 分頁控制 -->
         <div class="flex bg-white rounded-xl p-1 shadow-sm border border-slate-100 text-center">
             <button onclick="switchTab('action')" id="tab-action" class="flex-1 py-2 text-sm font-bold tab-active transition-all">操作頁面</button>
             <button onclick="switchTab('stock')" id="tab-stock" class="flex-1 py-2 text-sm font-bold text-slate-400 transition-all">現存庫存</button>
@@ -66,7 +68,7 @@
                 </div>
                 
                 <div class="space-y-3 relative text-left">
-                    <div class="grid grid-cols-2 gap-3 text-left">
+                    <div class="grid grid-cols-2 gap-3">
                         <div class="space-y-1">
                             <label class="text-[10px] font-bold text-slate-400 uppercase ml-1">機群</label>
                             <select id="input-group" class="w-full bg-slate-50 border-0 rounded-xl px-4 py-3 text-sm font-bold text-slate-800 outline-none focus:ring-2 focus:ring-blue-500"></select>
@@ -76,14 +78,14 @@
                             <input type="text" id="input-unit" placeholder="例如：PC" class="w-full bg-slate-50 border-0 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-blue-500">
                         </div>
                     </div>
-                    <div class="grid grid-cols-2 gap-3 text-left">
+                    <div class="grid grid-cols-2 gap-3">
                         <div class="space-y-1">
                             <label class="text-[10px] font-bold text-slate-400 uppercase ml-1">類別</label>
                             <select id="input-category" class="w-full bg-slate-50 border-0 rounded-xl px-4 py-3 text-sm font-bold text-slate-800 outline-none focus:ring-2 focus:ring-blue-500"></select>
                         </div>
                         <div class="space-y-1">
                             <label class="text-[10px] font-bold text-slate-400 uppercase ml-1">位置 / 用途</label>
-                            <input type="text" id="input-usage" placeholder="備註..." class="w-full bg-slate-50 border-0 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-blue-500">
+                            <input type="text" id="input-usage" placeholder="備註位置..." class="w-full bg-slate-50 border-0 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-blue-500">
                         </div>
                     </div>
                     
@@ -97,21 +99,20 @@
                         <div class="flex gap-2">
                             <div class="relative flex-1">
                                 <input type="text" id="input-sku" oninput="onSkuTyping(this.value)" placeholder="搜尋或掃描料號..." class="w-full bg-slate-50 border-0 rounded-xl pl-4 pr-10 py-3 text-sm outline-none focus:ring-2 focus:ring-blue-500 font-mono" autocomplete="off">
-                                <!-- 清除按鈕 -->
                                 <button id="btn-clear-sku" onclick="clearSkuInput()" class="clear-btn absolute right-3 top-1/2 -translate-y-1/2 text-slate-300 hover:text-slate-500 active:scale-90">
                                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
                                 </button>
                             </div>
                             <button onclick="startScanner()" class="bg-blue-100 text-blue-600 p-3 rounded-xl active:scale-90 transition-transform"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"></path></svg></button>
                         </div>
-                        <div id="sku-suggestions" class="absolute left-0 right-0 bg-white border border-slate-200 rounded-xl shadow-xl z-50 mt-1 hidden max-h-60 overflow-y-auto hide-scroll"></div>
+                        <div id="sku-suggestions" class="absolute left-0 right-0 bg-white border border-slate-200 rounded-xl shadow-xl z-50 mt-1 hidden max-h-60 overflow-y-auto hide-scroll text-left"></div>
                     </div>
 
-                    <div class="space-y-1">
+                    <div class="space-y-1 text-left">
                         <label class="text-[10px] font-bold text-slate-400 uppercase ml-1">異動數量</label>
                         <div class="flex items-center bg-slate-50 rounded-xl p-1">
                             <button onclick="stepQty(-1)" class="w-12 h-10 bg-white rounded-lg shadow-sm font-bold text-xl active:bg-slate-100">-</button>
-                            <input type="number" id="input-qty" value="1" class="flex-1 bg-transparent text-center font-black text-xl outline-none text-center">
+                            <input type="number" id="input-qty" value="1" class="flex-1 bg-transparent text-center font-black text-xl outline-none">
                             <button onclick="stepQty(1)" class="w-12 h-10 bg-white rounded-lg shadow-sm font-bold text-xl active:bg-slate-100">+</button>
                         </div>
                     </div>
@@ -123,20 +124,19 @@
         <!-- B. 庫存分頁 -->
         <div id="section-stock" class="hidden space-y-4 animate-in fade-in duration-300">
             <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 space-y-3 text-left">
-                <div class="flex justify-between items-center px-1">
+                <div class="flex justify-between items-center px-1 text-left">
                     <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-black">條件篩選</span>
                     <button onclick="openImportModal()" class="text-blue-600 text-[10px] font-bold border-b border-blue-200">文字匯入</button>
                 </div>
-                <div class="grid grid-cols-2 gap-2 text-xs">
+                <div class="grid grid-cols-2 gap-2 text-xs text-left">
                     <select id="filter-group" onchange="onFilterGroupChange()" class="bg-slate-50 border-0 rounded-lg px-3 py-2 font-bold outline-none focus:ring-1 focus:ring-blue-500 shadow-inner font-mono"><option value="">所有機群</option></select>
                     <select id="filter-unit" onchange="onFilterUnitChange()" class="bg-slate-50 border-0 rounded-lg px-3 py-2 font-bold outline-none focus:ring-1 focus:ring-blue-500 shadow-inner font-mono"><option value="">所有 Unit</option></select>
                 </div>
-                <div class="grid grid-cols-1 text-xs">
+                <div class="grid grid-cols-1 text-xs text-left">
                     <select id="filter-category" onchange="applyFilters()" class="w-full bg-slate-50 border-0 rounded-lg px-3 py-2.5 font-bold outline-none focus:ring-1 focus:ring-blue-500 shadow-inner"><option value="">所有類別</option></select>
                 </div>
                 <div class="relative">
                     <input type="text" id="filter-usage" oninput="toggleSearchClearBtn(this.value); applyFilters();" placeholder="搜尋型號、料號、位置關鍵字..." class="w-full bg-slate-50 border-0 rounded-lg pl-3 pr-10 py-2.5 text-xs font-bold outline-none focus:ring-1 focus:ring-blue-500 shadow-inner">
-                    <!-- 搜尋清除按鈕 -->
                     <button id="btn-clear-search" onclick="clearSearchInput()" class="clear-btn absolute right-3 top-1/2 -translate-y-1/2 text-slate-300 hover:text-slate-500 active:scale-90">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
                     </button>
@@ -149,11 +149,26 @@
     </main>
 
     <!-- 彈窗模組 -->
+    
+    <!-- 掃描畫面 (更新：長方形框 + 鏡頭優化) -->
+    <div id="scanner-view" class="fixed inset-0 bg-black z-[5000] hidden flex flex-col">
+        <div class="bg-black/60 p-6 flex justify-between items-center text-white">
+            <div class="font-black tracking-tight">料號條碼掃描</div>
+            <button onclick="stopScanner()" class="bg-white/10 p-2 rounded-full active:bg-white/20"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+        </div>
+        <div id="reader" class="flex-1 bg-black"></div>
+        <div class="p-10 bg-black/80 text-center">
+            <p class="text-white/40 text-[10px] font-bold mb-4 uppercase tracking-widest">請將長形條碼置於框內</p>
+            <button onclick="stopScanner()" class="w-full bg-red-600 text-white py-4 rounded-2xl font-black active:scale-95 transition-transform">關閉相機</button>
+        </div>
+    </div>
+
+    <!-- 共用件智慧選取器 -->
     <div id="context-picker-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[4500] hidden flex items-center justify-center p-6 text-center" onclick="closeContextPicker()">
         <div class="bg-white w-full max-w-sm rounded-3xl p-6 space-y-4 shadow-2xl animate-in fade-in zoom-in duration-200" onclick="event.stopPropagation()">
-            <div class="text-center"><h3 id="picker-title" class="text-lg font-black text-slate-800 tracking-tight">版本環境選取</h3><p id="picker-desc" class="text-[10px] text-slate-400">偵測到多個位置，請選擇要帶入的組合：</p></div>
+            <div class="text-center"><h3 id="picker-title" class="text-lg font-black text-slate-800 tracking-tight">環境版本選取</h3><p id="picker-desc" class="text-[10px] text-slate-400">偵測到多個位置，請選擇欲操作的組合：</p></div>
             <div id="context-options-list" class="space-y-2 max-h-64 overflow-y-auto pr-1 hide-scroll font-sans text-left"></div>
-            <div id="admin-full-delete-zone" class="hidden pt-2 border-t border-slate-100"><button onclick="executeFullDeleteFromPicker()" class="w-full py-3 bg-red-50 text-red-600 rounded-xl font-bold text-xs active:bg-red-100">永久徹底刪除整個料號</button></div>
+            <div id="admin-full-delete-zone" class="hidden pt-2 border-t border-slate-100"><button onclick="executeFullDeleteFromPicker()" class="w-full py-3 bg-red-50 text-red-600 rounded-xl font-bold text-xs active:bg-red-100 transition-colors">永久徹底刪除整個料號</button></div>
             <button onclick="closeContextPicker()" class="w-full py-3 bg-slate-100 rounded-xl font-bold text-slate-500 text-sm active:bg-slate-200 transition-colors">取消</button>
         </div>
     </div>
@@ -167,7 +182,7 @@
     </div>
 
     <div id="confirm-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-[4000] hidden flex items-center justify-center p-6 text-left font-sans">
-        <div class="bg-white w-full max-w-xs rounded-3xl p-6 space-y-4 shadow-2xl">
+        <div class="bg-white w-full max-w-xs rounded-3xl p-6 space-y-4 shadow-2xl text-center">
             <h3 id="confirm-title" class="text-lg font-black tracking-tight text-slate-800">操作確認</h3>
             <p id="confirm-modal-msg" class="text-xs text-slate-500 leading-relaxed"></p>
             <div id="confirm-standard-actions" class="flex flex-col gap-2 pt-2"></div>
@@ -190,8 +205,7 @@
         </div>
     </div>
 
-    <div id="scanner-view" class="fixed inset-0 bg-black z-[3000] hidden flex flex-col"><div id="reader" class="flex-1"></div><div class="p-10 bg-black text-center"><button onclick="stopScanner()" class="bg-red-600 text-white px-10 py-4 rounded-2xl font-black active:scale-95 transition-transform">關閉掃描</button></div></div>
-    <div id="toast" class="fixed bottom-10 left-1/2 -translate-x-1/2 bg-slate-900/90 backdrop-blur text-white px-6 py-3 rounded-full text-[10px] font-bold opacity-0 transition-all z-[5000] pointer-events-none shadow-2xl text-center"></div>
+    <div id="toast" class="fixed bottom-10 left-1/2 -translate-x-1/2 bg-slate-900/90 backdrop-blur text-white px-6 py-3 rounded-full text-[10px] font-bold opacity-0 transition-all z-[6000] pointer-events-none shadow-2xl text-center"></div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
@@ -235,7 +249,7 @@
             location.reload();
         };
 
-        window.logout = () => { if (confirm("確定要登出更換使用者嗎？")) { localStorage.removeItem('ims_op_v12_final'); location.reload(); } };
+        window.logout = () => { if (confirm("確定要登出並換人嗎？")) { localStorage.removeItem('ims_op_v12_final'); location.reload(); } };
 
         window.toggleAdminMode = () => {
             adminModeActive = !adminModeActive;
@@ -263,7 +277,50 @@
             });
         }
 
-        // --- 智慧搜尋與清除按鈕邏輯 (V12.1 更新) ---
+        // --- 核心更新：掃描器與相機選擇邏輯 (V12.2) ---
+        window.startScanner = async () => {
+            document.getElementById('scanner-view').classList.remove('hidden');
+            html5QrCode = new Html5Qrcode("reader");
+            
+            // 鏡頭設定優化：嘗試避開超廣角鏡頭 (0.6x)，優先請求標準鏡頭感光元件
+            const config = { 
+                fps: 25, 
+                // 長形條碼掃描框 (寬 280, 高 120)
+                qrbox: { width: 280, height: 120 },
+                aspectRatio: 1.777778, // 16:9
+                videoConstraints: {
+                    facingMode: { ideal: "environment" },
+                    // 強制要求較高的解析度通常能使瀏覽器選擇主鏡頭而非微距或超廣角鏡
+                    width: { min: 640, ideal: 1280, max: 1920 },
+                    height: { min: 480, ideal: 720, max: 1080 }
+                }
+            };
+
+            await html5QrCode.start({ facingMode: "environment" }, config, (decodedText) => {
+                document.getElementById('input-sku').value = decodedText;
+                document.getElementById('btn-clear-sku').classList.add('show');
+                window.onSkuTyping(decodedText);
+                stopScanner();
+                showToast(`掃描成功: ${decodedText}`);
+            }).catch(() => {
+                showToast("❌ 無法啟動相機，請檢查權限");
+                stopScanner();
+            });
+        };
+
+        window.stopScanner = () => {
+            if (html5QrCode) {
+                html5QrCode.stop().then(() => {
+                    document.getElementById('scanner-view').classList.add('hidden');
+                }).catch(() => {
+                    document.getElementById('scanner-view').classList.add('hidden');
+                });
+            } else {
+                document.getElementById('scanner-view').classList.add('hidden');
+            }
+        };
+
+        // --- 智慧搜尋與清除按鈕 ---
         window.clearSkuInput = () => {
             const input = document.getElementById('input-sku');
             input.value = "";
@@ -344,13 +401,12 @@
         function showContextPicker(item, groups, units, usages, isDeleteMode = false) {
             activePickerSku = item.sku; const list = document.getElementById('context-options-list'); list.innerHTML = "";
             document.getElementById('picker-title').innerText = isDeleteMode ? "選擇要移除的環境" : "環境版本選取";
-            document.getElementById('picker-title').className = isDeleteMode ? "text-lg font-black text-red-600 text-center" : "text-lg font-black text-slate-800 text-center";
             document.getElementById('admin-full-delete-zone').classList.toggle('hidden', !isDeleteMode);
             const count = Math.max(groups.length, units.length, usages.length);
             for (let i = 0; i < count; i++) {
                 const g = groups[i] || groups[0] || ""; const u = units[i] || units[0] || ""; const us = usages[i] || "";
                 const btn = document.createElement('button'); btn.className = `w-full p-4 border rounded-2xl text-left mb-2 active:scale-95 transition-transform ${isDeleteMode?'bg-red-50 border-red-100':'bg-slate-50 border-slate-200'}`;
-                btn.innerHTML = `<div class="flex justify-between items-center text-[10px]"><div><span class="font-black ${isDeleteMode?'text-red-600':'text-blue-600'} uppercase font-mono tracking-tight">${g}_${u}</span><div class="text-slate-800 font-black mt-1.5 text-xs text-left">位：${us || '未註明'}</div></div><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="${isDeleteMode?'M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6':'M5 12h14M12 5l7 7-7 7'}"/></svg></div>`;
+                btn.innerHTML = `<div class="flex justify-between items-center text-[10px]"><div><span class="font-black ${isDeleteMode?'text-red-600':'text-blue-600'} uppercase font-mono tracking-tight">${g}_${u}</span><div class="text-slate-800 font-black mt-1.5 text-xs">位：${us || '未註明'}</div></div><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="${isDeleteMode?'M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6':'M5 12h14M12 5l7 7-7 7'}"/></svg></div>`;
                 btn.onclick = () => isDeleteMode ? executePartialDelete(item.sku, i) : (applyContext(item.sku, g, u, item.category, us, item.model||""), closeContextPicker());
                 list.appendChild(btn);
             }
@@ -365,13 +421,13 @@
             document.getElementById('input-unit').value = u; 
             document.getElementById('input-category').value = cat; 
             document.getElementById('input-usage').value = usage;
-            switchTab('action'); showToast(`已帶入環境環境: ${g}_${u}`);
+            switchTab('action'); showToast(`已帶入環境: ${g}_${u}`);
         }
 
         // --- 核心提交與合併 ---
         window.submitTransaction = async () => {
             const sku = document.getElementById('input-sku').value.trim(); const model = document.getElementById('input-model').value.trim(); const group = document.getElementById('input-group').value; const unit = document.getElementById('input-unit').value.trim(); const cat = document.getElementById('input-category').value; const usage = document.getElementById('input-usage').value.trim(); const qty = parseInt(document.getElementById('input-qty').value) || 0;
-            if (!sku || !group || !unit || qty < 0) return showToast("⚠️ 資料不完整");
+            if (!sku || !group || !unit || qty < 0) return showToast("⚠️ 請完整填寫機群、單位、料號");
             const existing = window.cachedStock.find(i => i.sku === sku);
             if (existing) {
                 const groups = existing.group.split(",").map(s => s.trim()); const units = existing.unit.split(",").map(s => s.trim()); const usages = (existing.usage || "").split(",").map(s => s.trim());
@@ -405,7 +461,7 @@
                 let oldQty = snap.exists() ? snap.data().qty : 0; let newQty = currentMode === 'IN' ? oldQty + qty : (currentMode === 'OUT' ? oldQty - qty : qty);
                 await setDoc(ref, { sku, group, unit, qty: newQty, category: cat, usage, model, lastOp: operatorId, time: serverTimestamp() });
                 await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'history'), { sku, type: currentMode, change: qty, after: newQty, op: operatorId, group, unit, timestamp: serverTimestamp() });
-                showToast("✅ 同步完成"); document.getElementById('input-sku').value = ""; document.getElementById('input-model').value = ""; document.getElementById('input-qty').value = "1"; document.getElementById('btn-clear-sku').classList.remove('show');
+                showToast("✅ 同步成功"); document.getElementById('input-sku').value = ""; document.getElementById('input-model').value = ""; document.getElementById('input-qty').value = "1"; document.getElementById('input-usage').value = ""; document.getElementById('btn-clear-sku').classList.remove('show');
             } catch (e) { showToast("❌ 錯誤"); }
             finally { btn.disabled = false; setMode(currentMode); }
         }
@@ -433,15 +489,15 @@
                     } else { fG = Array.from(input.gS).join(", "); fU = Array.from(input.uS).join(", "); fUs = Array.from(input.usS).join(", "); }
                     batch.set(doc(db, 'artifacts', appId, 'public', 'data', 'stock', sku), { sku, group: fG, unit: fU, category: input.cat || "其他", usage: fUs, qty: input.qty, model: input.model, lastOp: operatorId, time: serverTimestamp() });
                 }
-                await batch.commit(); showToast(`✅ 匯入成功`); closeImportModal();
-            } catch (e) { showToast("❌ 錯誤"); }
+                await batch.commit(); showToast(`✅ 智慧合併成功`); closeImportModal();
+            } catch (e) { showToast("❌ 解析失敗"); }
         };
 
         window.deleteStockItem = (sku) => {
             const item = window.cachedStock.find(i => i.sku === sku); if (!item) return;
             const groups = item.group.split(",").map(s => s.trim()); const units = item.unit.split(",").map(s => s.trim()); const usages = (item.usage || "").split(",").map(s => s.trim());
             if (Math.max(groups.length, units.length, usages.length) > 1) showContextPicker(item, groups, units, usages, true);
-            else { showConfirmModal("永久刪除", `徹底刪除料號 ${sku}？`, [{ text: "確定刪除", color: "bg-red-600", action: () => executeFullDelete(sku) }, { text: "取消", color: "bg-slate-100", textColor: "text-slate-500", action: () => closeConfirmModal() }]); }
+            else { showConfirmModal("永久刪除", `確定徹底刪除料號 ${sku}？`, [{ text: "確定刪除", color: "bg-red-600", action: () => executeFullDelete(sku) }, { text: "取消", color: "bg-slate-100", textColor: "text-slate-500", action: () => closeConfirmModal() }]); }
         };
         async function executeFullDelete(sku) { await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'stock', sku)); showToast(`🗑️ 已刪除`); closeConfirmModal(); closeContextPicker(); }
         async function executePartialDelete(sku, idx) {
@@ -453,12 +509,12 @@
         }
         window.executeFullDeleteFromPicker = () => { if(confirm(`徹底刪除整個料號 ${activePickerSku}？`)) executeFullDelete(activePickerSku); };
 
-        // --- 建議與視覺 ---
+        // --- UI 工具 ---
         window.onSkuTyping = (v) => {
             document.getElementById('btn-clear-sku').classList.toggle('show', v.length > 0);
             const c = document.getElementById('sku-suggestions'); if (!v || !window.cachedStock) { c.classList.add('hidden'); return; }
             const m = window.cachedStock.filter(i => i.sku.toLowerCase().includes(v.toLowerCase())).slice(0, 8);
-            if (m.length > 0) { c.innerHTML = m.map(i => `<div class="suggestion-item text-left"><div class="font-bold text-xs font-mono tracking-tighter">${i.sku}</div><div class="text-[8px] text-slate-400 font-mono text-left text-left">型號：${i.model||'無'} | 數量：${i.qty}</div></div>`).join(''); c.classList.remove('hidden'); } else c.classList.add('hidden');
+            if (m.length > 0) { c.innerHTML = m.map(i => `<div class="suggestion-item text-left"><div class="font-bold text-xs font-mono">${i.sku}</div><div class="text-[8px] text-slate-400 font-mono text-left">型號：${i.model||'無'} | 數量：${i.qty}</div></div>`).join(''); c.classList.remove('hidden'); } else c.classList.add('hidden');
         };
         window.applySuggestion = (sku) => { autoFillStock(sku); document.getElementById('sku-suggestions').classList.add('hidden'); };
         window.openImportModal = () => document.getElementById('import-modal').classList.remove('hidden');
@@ -475,10 +531,10 @@
         window.removeCategory = async (n) => { if (confirm(`移除類別 ${n}？`)) await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'categories', 'all'), { list: categories.filter(x => x !== n) }); };
         window.addNewGroup = async () => { const i = document.getElementById('new-group-name'); if (!i.value.trim()) return; await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'groups', 'all'), { list: [...machineGroups, i.value.trim()] }); i.value = ""; };
         window.removeGroup = async (n) => { if (confirm(`移除機群 ${n}？`)) await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'groups', 'all'), { list: machineGroups.filter(x => x !== n) }); };
-        function renderCats() { document.getElementById('input-category').innerHTML = categories.map(c => `<option value="${c}">${c}</option>`).join(''); document.getElementById('category-list-manager').innerHTML = categories.map(c => `<div class="flex justify-between items-center bg-slate-50 p-2 rounded-xl mb-1 text-left"><span class="text-xs font-bold font-mono">${c}</span>${adminModeActive ? `<button onclick="removeCategory('${c}')" class="text-red-500 font-bold text-[9px] uppercase">移除</button>` : ''}</div>`).join(''); }
-        function renderGroups() { document.getElementById('input-group').innerHTML = '<option value="" disabled selected>機群選單</option>' + machineGroups.map(g => `<option value="${g}">${g}</option>`).join(''); document.getElementById('group-list-manager').innerHTML = machineGroups.map(g => `<div class="flex justify-between items-center bg-slate-50 p-2 rounded-xl mb-1 text-left text-left"><span class="text-xs font-bold font-mono">${g}</span>${adminModeActive ? `<button onclick="removeGroup('${g}')" class="text-red-500 text-[9px] uppercase text-center">移除</button>` : ''}</div>`).join(''); }
+        function renderCats() { document.getElementById('input-category').innerHTML = categories.map(c => `<option value="${c}">${c}</option>`).join(''); document.getElementById('category-list-manager').innerHTML = categories.map(c => `<div class="flex justify-between items-center bg-slate-50 p-2 rounded-xl mb-1 text-left"><span class="text-xs font-bold font-mono text-left">${c}</span>${adminModeActive ? `<button onclick="removeCategory('${c}')" class="text-red-500 font-bold text-[9px] uppercase">移除</button>` : ''}</div>`).join(''); }
+        function renderGroups() { document.getElementById('input-group').innerHTML = '<option value="" disabled selected>機群選單</option>' + machineGroups.map(g => `<option value="${g}">${g}</option>`).join(''); document.getElementById('group-list-manager').innerHTML = machineGroups.map(g => `<div class="flex justify-between items-center bg-slate-50 p-2 rounded-xl mb-1 text-left"><span class="text-xs font-bold font-mono text-left">${g}</span>${adminModeActive ? `<button onclick="removeGroup('${g}')" class="text-red-500 text-[9px] uppercase">移除</button>` : ''}</div>`).join(''); }
         function renderStock(data) {
-            const list = document.getElementById('stock-list'); if (!data.length) return list.innerHTML = '<div class="py-20 text-slate-300 text-xs text-center italic tracking-widest uppercase">目前無庫存數據</div>';
+            const list = document.getElementById('stock-list'); if (!data.length) return list.innerHTML = '<div class="py-20 text-slate-300 text-xs text-center italic tracking-widest uppercase text-center">目前無庫存數據</div>';
             list.innerHTML = data.map(i => {
                 const gL = (i.group||"").split(",").map(s=>s.trim()); const uL = (i.unit||"").split(",").map(s=>s.trim());
                 const b = uL.map((u,idx) => `<span class="unit-badge">${(gL[idx]||gL[0])}_${u}</span>`).join('');
@@ -487,8 +543,8 @@
                     <div class="flex-1 pr-2">
                         <div class="mb-1 flex flex-wrap gap-1">${b}</div>
                         <div class="text-[10px] font-black text-blue-600 font-mono mb-0.5 uppercase tracking-tight text-left">${i.model||'無型號紀錄'}</div>
-                        <div class="font-black text-slate-800 text-sm font-mono leading-none break-all text-left text-left">${i.sku}</div>
-                        <div class="text-[11px] text-slate-500 mt-2 font-black tracking-tight text-left text-left">
+                        <div class="font-black text-slate-800 text-sm font-mono leading-none break-all text-left">${i.sku}</div>
+                        <div class="text-[11px] text-slate-500 mt-2 font-black tracking-tight text-left">
                             <span class="text-slate-400 font-bold uppercase mr-1">${i.category}</span> | <span class="italic text-slate-600">位：${i.usage||'未註明'}</span>
                         </div>
                     </div>
@@ -499,14 +555,11 @@
                 </div>`;
             }).join('');
         }
-        function renderHistory(logs) { document.getElementById('history-list').innerHTML = logs.slice(0, 20).map(l => `<div class="bg-white p-3 rounded-xl border border-slate-50 flex justify-between items-center text-[9px] shadow-sm text-left"><div class="text-left font-mono tracking-tighter"><div class="font-bold text-slate-800">${l.sku}</div><div class="text-slate-400 font-black">工號: ${l.op} • ${l.timestamp ? new Date(l.timestamp.toMillis()).toLocaleTimeString() : '...'}</div></div><div class="font-black ${l.type==='IN'?'text-blue-500':(l.type==='OUT'?'text-orange-500':'text-emerald-500')}">${l.type} ${l.change}</div></div>`).join(''); }
+        function renderHistory(logs) { document.getElementById('history-list').innerHTML = logs.slice(0, 20).map(l => `<div class="bg-white p-3 rounded-xl border border-slate-50 flex justify-between items-center text-[9px] shadow-sm text-left"><div class="text-left font-mono tracking-tighter text-left"><div class="font-bold text-slate-800">${l.sku}</div><div class="text-slate-400 font-black">工號: ${l.op} • ${l.timestamp ? new Date(l.timestamp.toMillis()).toLocaleTimeString() : '...'}</div></div><div class="font-black ${l.type==='IN'?'text-blue-500':(l.type==='OUT'?'text-orange-500':'text-emerald-500')}">${l.type} ${l.change}</div></div>`).join(''); }
         window.setMode = (m) => { currentMode = m; ['IN','OUT','COUNT'].forEach(x => document.getElementById(`mode-${x.toLowerCase()}`).className = x === m ? 'flex-1 py-2 rounded-lg bg-blue-600 text-white font-bold text-xs shadow-md' : 'flex-1 py-2 rounded-lg text-slate-400 font-bold text-xs'); const btn = document.getElementById('btn-submit'); btn.innerText = m==='IN'?'確認入庫':(m==='OUT'?'確認出庫':'修正盤點'); btn.style.backgroundColor = m==='IN'?'#2563eb':(m==='OUT'?'#f97316':'#10b981'); };
         window.switchTab = (t) => { ['action','stock','history'].forEach(x => { document.getElementById(`section-${x}`).classList.toggle('hidden', x !== t); document.getElementById(`tab-${x}`).classList.toggle('tab-active', x === t); }); };
         window.stepQty = (v) => { const i = document.getElementById('input-qty'); i.value = Math.max(0, (parseInt(i.value) || 0) + v); };
         window.toggleSettingsManager = (s) => document.getElementById('settings-modal').classList.toggle('hidden', !s);
-        window.startScanner = async () => { document.getElementById('scanner-view').classList.remove('hidden'); html5QrCode = new Html5Qrcode("reader"); await html5QrCode.start({ facingMode: "environment" }, { fps: 20, qrbox: 240 }, (t) => { document.getElementById('input-sku').value = t; window.onSkuTyping(t); stopScanner(); }).catch(() => stopScanner()); };
-        window.stopScanner = () => { if (html5QrCode) html5QrCode.stop().then(() => document.getElementById('scanner-view').classList.add('hidden')); else document.getElementById('scanner-view').classList.add('hidden'); };
-        function showToast(m) { const t = document.getElementById('toast'); t.innerText = m; t.style.opacity = "1"; setTimeout(() => t.style.opacity = "0", 2500); }
         document.addEventListener('click', (e) => { if (e.target.id !== 'input-sku') document.getElementById('sku-suggestions').classList.add('hidden'); });
         init();
     </script>
