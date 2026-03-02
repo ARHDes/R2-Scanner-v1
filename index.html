@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>多人雲端倉庫助手 V8.0 - 管理員版</title>
+    <title>多人雲端倉庫助手 V8.1</title>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -17,46 +17,49 @@
 </head>
 <body class="bg-slate-50 min-h-screen pb-20 font-sans text-slate-900">
 
-    <!-- 人員設置 -->
+    <!-- 1. 工號登錄介面 -->
     <div id="setup-overlay" class="fixed inset-0 bg-blue-600 z-[1000] flex items-center justify-center p-6 hidden">
         <div class="bg-white rounded-3xl p-8 w-full max-w-sm shadow-2xl text-center">
-            <h2 class="text-2xl font-black mb-2 text-slate-800">身分登錄</h2>
-            <p class="text-slate-500 text-sm mb-6">請輸入您的員編或姓名以開始作業。</p>
-            <input type="text" id="operator-name-input" placeholder="人員名稱或管理員編號" class="w-full border-2 border-slate-100 rounded-xl px-4 py-3 mb-4 outline-none focus:border-blue-500 text-center font-bold">
+            <div class="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+            </div>
+            <h2 class="text-2xl font-black mb-2 text-slate-800">工號登錄</h2>
+            <p class="text-slate-500 text-sm mb-6">請輸入您的員工編號以開始作業。</p>
+            <input type="text" id="operator-name-input" placeholder="請輸入工號" class="w-full border-2 border-slate-100 rounded-xl px-4 py-3 mb-4 outline-none focus:border-blue-500 text-center font-bold text-lg">
             <button onclick="saveOperatorName()" class="w-full bg-blue-600 text-white py-4 rounded-xl font-bold shadow-lg active:scale-95 transition-all">進入系統</button>
         </div>
     </div>
 
-    <!-- 導航欄 -->
+    <!-- 2. 導航欄 -->
     <nav id="top-nav" class="bg-white border-b border-slate-200 px-4 py-3 sticky top-0 z-50 flex justify-between items-center shadow-sm">
         <div class="flex items-center gap-2">
             <div class="flex flex-col">
-                <span id="admin-badge" class="hidden text-[8px] font-black bg-amber-500 text-white px-1.5 py-0.5 rounded-full w-fit mb-0.5 uppercase tracking-tighter">Admin Mode</span>
-                <span id="display-operator" class="text-sm font-bold text-slate-700">連線中...</span>
+                <span id="admin-badge" class="hidden text-[8px] font-black bg-amber-500 text-white px-1.5 py-0.5 rounded-full w-fit mb-0.5 uppercase tracking-tighter">管理員模式</span>
+                <span id="display-operator" class="text-sm font-bold text-slate-700">工號載入中...</span>
             </div>
         </div>
         <div class="flex items-center gap-1.5">
-            <!-- 管理員專屬按鈕 -->
-            <button id="admin-toggle-btn" onclick="toggleAdminMode()" class="hidden p-2 bg-amber-50 text-amber-600 rounded-lg active:scale-90 transition-all border border-amber-100">
+            <button id="admin-toggle-btn" onclick="toggleAdminMode()" class="hidden p-2 bg-amber-50 text-amber-600 rounded-lg active:scale-90 border border-amber-100">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
             </button>
-            <button onclick="toggleCategoryManager(true)" class="p-2 bg-slate-100 rounded-lg text-slate-600 active:scale-90 transition-all">
+            <button onclick="toggleCategoryManager(true)" class="p-2 bg-slate-100 rounded-lg text-slate-600 active:scale-90">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
             </button>
-            <button onclick="logout()" class="p-2 bg-red-50 text-red-500 rounded-lg active:scale-90 transition-all border border-red-100">
+            <button onclick="logout()" class="p-2 bg-red-50 text-red-500 rounded-lg active:scale-90 border border-red-100">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
             </button>
         </div>
     </nav>
 
     <main class="max-w-md mx-auto p-4 space-y-4">
+        <!-- 分頁切換 -->
         <div class="flex bg-white rounded-xl p-1 shadow-sm border border-slate-100">
             <button onclick="switchTab('action')" id="tab-action" class="flex-1 py-2 text-sm font-bold tab-active">操作</button>
-            <button onclick="switchTab('stock')" id="tab-stock" class="flex-1 py-2 text-sm font-bold text-slate-400">即時庫存</button>
+            <button onclick="switchTab('stock')" id="tab-stock" class="flex-1 py-2 text-sm font-bold text-slate-400">現存庫存</button>
             <button onclick="switchTab('history')" id="tab-history" class="flex-1 py-2 text-sm font-bold text-slate-400">歷史紀錄</button>
         </div>
 
-        <!-- 1. 操作分頁 -->
+        <!-- A. 操作面板 -->
         <div id="section-action" class="space-y-4">
             <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 space-y-4">
                 <div class="flex gap-2 p-1 bg-slate-50 rounded-xl">
@@ -72,8 +75,8 @@
                             <select id="input-category" class="w-full bg-slate-50 border-0 rounded-xl px-4 py-3 text-sm font-bold text-slate-800 outline-none focus:ring-2 focus:ring-blue-500"></select>
                         </div>
                         <div class="space-y-1">
-                            <label class="text-[10px] font-bold text-slate-400 uppercase ml-1">用途</label>
-                            <input type="text" id="input-usage" placeholder="備註..." class="w-full bg-slate-50 border-0 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-blue-500">
+                            <label class="text-[10px] font-bold text-slate-400 uppercase ml-1">位置 / 用途</label>
+                            <input type="text" id="input-usage" placeholder="備註位置..." class="w-full bg-slate-50 border-0 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-blue-500">
                         </div>
                     </div>
 
@@ -89,7 +92,7 @@
                     </div>
 
                     <div class="space-y-1">
-                        <label class="text-[10px] font-bold text-slate-400 uppercase ml-1">數量</label>
+                        <label class="text-[10px] font-bold text-slate-400 uppercase ml-1">異動數量</label>
                         <div class="flex items-center bg-slate-50 rounded-xl p-1">
                             <button onclick="stepQty(-1)" class="w-12 h-10 bg-white rounded-lg shadow-sm font-bold text-xl active:bg-slate-50">-</button>
                             <input type="number" id="input-qty" value="1" class="flex-1 bg-transparent text-center font-black text-xl outline-none">
@@ -102,26 +105,26 @@
             </div>
         </div>
 
-        <!-- 2. 庫存分頁 -->
+        <!-- B. 庫存清單分頁 -->
         <div id="section-stock" class="hidden space-y-3">
             <div class="flex justify-between items-center px-1">
-                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">雲端即時清單</span>
+                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">雲端即時庫存</span>
                 <div class="flex gap-2">
-                    <button onclick="triggerImport()" class="bg-emerald-50 text-emerald-600 px-3 py-1 rounded-lg text-xs font-bold border border-emerald-100 active:scale-95">匯入</button>
-                    <button onclick="exportAllData()" class="bg-blue-50 text-blue-600 px-3 py-1 rounded-lg text-xs font-bold border border-blue-100 active:scale-95">下載</button>
+                    <button onclick="triggerImport()" class="bg-emerald-50 text-emerald-600 px-3 py-1 rounded-lg text-xs font-bold border border-emerald-100 active:scale-95 transition-all">批次匯入</button>
+                    <button onclick="exportAllData()" class="bg-blue-50 text-blue-600 px-3 py-1 rounded-lg text-xs font-bold border border-blue-100 active:scale-95 transition-all">報表下載</button>
                 </div>
                 <input type="file" id="csv-file-input" class="hidden" accept=".csv" onchange="handleFileSelect(event)">
             </div>
             <div id="stock-list" class="space-y-2"></div>
         </div>
 
-        <!-- 3. 歷史分頁 -->
+        <!-- C. 歷史分頁 -->
         <div id="section-history" class="hidden space-y-3">
             <div id="history-list" class="space-y-2"></div>
         </div>
     </main>
 
-    <!-- Modal 彈窗區 -->
+    <!-- 輔助彈窗 -->
     <div id="scanner-view" class="fixed inset-0 bg-black z-[2000] hidden flex flex-col">
         <div id="reader" class="flex-1"></div>
         <div class="p-10 bg-black text-center">
@@ -131,10 +134,10 @@
 
     <div id="category-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] hidden flex items-center justify-center p-6" onclick="toggleCategoryManager(false)">
         <div class="bg-white w-full max-w-sm rounded-3xl p-6 space-y-4 shadow-2xl" onclick="event.stopPropagation()">
-            <h3 class="text-lg font-black text-slate-800">類別維護</h3>
+            <h3 class="text-lg font-black text-slate-800">類別管理</h3>
             <div id="admin-cat-controls" class="hidden space-y-4">
                 <div class="flex gap-2">
-                    <input type="text" id="new-category-name" placeholder="輸入新名稱..." class="flex-1 bg-slate-50 rounded-xl px-4 py-2 text-sm outline-none border border-transparent focus:border-blue-500">
+                    <input type="text" id="new-category-name" placeholder="輸入新類別..." class="flex-1 bg-slate-50 rounded-xl px-4 py-2 text-sm outline-none border border-transparent focus:border-blue-500">
                     <button onclick="addNewCategory()" class="bg-blue-600 text-white px-4 rounded-xl font-bold active:scale-90">+</button>
                 </div>
             </div>
@@ -143,7 +146,6 @@
         </div>
     </div>
 
-    <!-- 確認彈窗 -->
     <div id="confirm-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-[3000] hidden flex items-center justify-center p-6">
         <div class="bg-white w-full max-w-xs rounded-3xl p-6 space-y-4 shadow-2xl text-center">
             <div id="confirm-icon" class="w-16 h-16 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mx-auto mb-2">
@@ -160,12 +162,13 @@
 
     <div id="toast" class="fixed bottom-10 left-1/2 -translate-x-1/2 bg-slate-900/90 backdrop-blur text-white px-6 py-3 rounded-full text-xs font-bold opacity-0 transition-all z-[4000] pointer-events-none shadow-2xl"></div>
 
-    <!-- Firebase 邏輯 -->
+    <!-- Firebase 邏輯核心 -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, doc, setDoc, addDoc, onSnapshot, serverTimestamp, getDoc, writeBatch, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
+        // Firebase 連線配置 (已填入您的正確資訊)
         const firebaseConfig = {
             apiKey: "AIzaSyDlrIJR7wKN_lzcTiC2ohe8jeXaC3mZXdk",
             authDomain: "storage-3098e.firebaseapp.com",
@@ -180,9 +183,9 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
         const appId = 'storage-3098e'; 
-        const ADMIN_ID = '22009866';
+        const ADMIN_ID = '22009866'; // 管理員工號
 
-        let operatorName = localStorage.getItem('ims_op_v7');
+        let operatorName = localStorage.getItem('ims_op_v7'); // 本機存儲工號
         let currentMode = 'IN';
         let adminModeActive = false;
         let categories = [];
@@ -193,7 +196,7 @@
             if (!operatorName) {
                 document.getElementById('setup-overlay').classList.remove('hidden');
             } else {
-                document.getElementById('display-operator').innerText = `👤 ${operatorName}`;
+                document.getElementById('display-operator').innerText = `👤 工號: ${operatorName}`;
                 checkAdminStatus();
             }
             try {
@@ -219,7 +222,7 @@
         };
 
         window.logout = () => {
-            if (confirm("確定要登出並切換使用者嗎？")) {
+            if (confirm("確定要登出工號並更換使用者嗎？")) {
                 localStorage.removeItem('ims_op_v7');
                 location.reload();
             }
@@ -233,7 +236,7 @@
             if (adminModeActive) {
                 nav.classList.add('admin-glow', 'bg-amber-50');
                 badge.classList.remove('hidden');
-                showToast("⚠️ 已進入管理模式");
+                showToast("⚠️ 已開啟管理編輯功能");
             } else {
                 nav.classList.remove('admin-glow', 'bg-amber-50');
                 badge.classList.add('hidden');
@@ -244,29 +247,32 @@
         };
 
         function loadCloudData() {
+            // 同步類別 (6段路徑)
             const catRef = doc(db, 'artifacts', appId, 'public', 'data', 'categories', 'all');
             onSnapshot(catRef, (s) => {
                 if (s.exists()) {
                     categories = s.data().list || [];
                     renderCats();
                 } else {
-                    setDoc(catRef, { list: ['培林', '氣壓缸', '螺絲', '耗材'] });
+                    setDoc(catRef, { list: ['培林', 'CYLINDER(氣動缸)', '螺絲', '耗材'] });
                 }
             });
 
+            // 同步即時庫存
             onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'stock'), (s) => {
                 const data = s.docs.map(d => d.data());
                 window.cachedStock = data;
                 renderStock(data);
             });
 
+            // 同步歷史紀錄
             onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'history'), (s) => {
                 const logs = s.docs.map(d => d.data()).sort((a,b) => (b.timestamp?.toMillis() || 0) - (a.timestamp?.toMillis() || 0));
                 renderHistory(logs);
             });
         }
 
-        // --- 核心邏輯：建議清單與屬性檢查 ---
+        // --- 輸入建議與自動帶入 ---
         window.onSkuTyping = (val) => {
             const container = document.getElementById('sku-suggestions');
             if (!val || !window.cachedStock) {
@@ -284,7 +290,7 @@
             } else {
                 container.classList.add('hidden');
             }
-            // 自動帶入
+            // 完全匹配自動帶入
             const exact = window.cachedStock.find(i => i.sku.toLowerCase() === val.trim().toLowerCase());
             if (exact) {
                 document.getElementById('input-category').value = exact.category;
@@ -302,22 +308,23 @@
             }
         };
 
+        // --- 提交與衝突處理 ---
         window.submitTransaction = async () => {
             const sku = document.getElementById('input-sku').value.trim();
             const usage = document.getElementById('input-usage').value.trim();
             const qty = parseInt(document.getElementById('input-qty').value) || 0;
             const cat = document.getElementById('input-category').value;
 
-            if (!sku || qty <= 0) return showToast("⚠️ 請輸入料號與數量");
+            if (!sku || qty < 0) return showToast("⚠️ 請輸入正確料號與數量");
 
             const existing = window.cachedStock.find(i => i.sku === sku);
             if (existing && (existing.category !== cat || (existing.usage || "") !== usage)) {
                 pendingAction = { type: 'OVERWRITE', data: { sku, cat, usage, qty } };
-                showConfirm("偵測到屬性變更", 
-                    `料號 <b>${sku}</b> 已存在且屬性不同：<br>` +
+                showConfirm("屬性變更警告", 
+                    `此料號屬性與雲端不一致：<br>` +
                     `類別：${existing.category} ➔ ${cat}<br>` +
-                    `用途：${existing.usage||'無'} ➔ ${usage||'無'}<br><br>` +
-                    `是否確定要更新屬性並繼續？`, "#f59e0b", "確定覆蓋");
+                    `位置：${existing.usage||'無'} ➔ ${usage||'無'}<br><br>` +
+                    `是否確定要更新屬性設定並繼續？`, "#f59e0b", "確定更新");
                 return;
             }
             executeCommit(sku, cat, usage, qty);
@@ -337,25 +344,78 @@
                     sku, type: currentMode, change: qty, after: newQty, op: operatorName, cat, usage, timestamp: serverTimestamp()
                 });
 
-                showToast(`✅ ${sku} 更新成功`);
+                showToast(`✅ ${sku} 紀錄成功`);
                 document.getElementById('input-sku').value = "";
                 document.getElementById('input-usage').value = "";
                 document.getElementById('input-qty').value = "1";
-            } catch (e) { showToast("❌ 更新失敗"); }
+            } catch (e) { showToast("❌ 雲端更新失敗"); }
             finally { btn.disabled = false; setMode(currentMode); }
         }
 
-        // --- 管理員刪除功能 ---
+        // --- 匯入功能 (更新：適配指定格式) ---
+        window.triggerImport = () => document.getElementById('csv-file-input').click();
+        window.handleFileSelect = (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = async (e) => { await processCSV(e.target.result); event.target.value = ''; };
+            reader.readAsText(file);
+        };
+
+        async function processCSV(csvText) {
+            showToast("⏳ 批次匯入中...");
+            const rows = csvText.split(/\r?\n/).filter(r => r.trim() !== "");
+            if (rows.length <= 1) return showToast("⚠️ CSV 無內容");
+
+            const batch = writeBatch(db);
+            let count = 0;
+            let newCats = new Set(categories);
+
+            try {
+                for (let i = 1; i < rows.length; i++) {
+                    // 支援逗號與引號處理
+                    const cols = rows[i].split(",").map(c => c.trim().replace(/^"|"$/g, ""));
+                    if (cols.length < 4) continue;
+
+                    // 格式：料號, 類別, 位置/用途, 庫存數量
+                    const [sku, cat, usage, qtyStr] = cols;
+                    const qty = parseInt(qtyStr) || 0;
+                    if (!sku) continue;
+
+                    batch.set(doc(db, 'artifacts', appId, 'public', 'data', 'stock', sku), {
+                        sku, 
+                        category: cat || "其他", 
+                        usage: usage || "", 
+                        qty: qty, 
+                        lastOp: operatorName + "(批次匯入)", 
+                        time: serverTimestamp()
+                    });
+                    if (cat) newCats.add(cat);
+                    count++;
+                }
+
+                if (newCats.size > categories.length) {
+                    batch.update(doc(db, 'artifacts', appId, 'public', 'data', 'categories', 'all'), { list: Array.from(newCats) });
+                }
+
+                await batch.commit();
+                showToast(`✅ 成功匯入 ${count} 筆料號`);
+            } catch (err) { 
+                console.error(err);
+                showToast("❌ 匯入格式錯誤"); 
+            }
+        }
+
+        // --- 管理功能 ---
         window.deleteStockItem = (sku) => {
             pendingAction = { type: 'DELETE_SKU', data: { sku } };
-            showConfirm("刪除料號", `確定要永久刪除料號 <b>${sku}</b> 的所有庫存資料嗎？這無法復原。`, "#ef4444", "確定刪除");
+            showConfirm("永久刪除", `確定要刪除料號 <b>${sku}</b> 的所有庫存資料嗎？這無法復原。`, "#ef4444", "確定刪除");
         };
 
         function showConfirm(title, msg, color, btnText) {
             const modal = document.getElementById('confirm-modal');
             const icon = document.getElementById('confirm-icon');
             const okBtn = document.getElementById('confirm-ok-btn');
-            
             document.getElementById('confirm-title').innerText = title;
             document.getElementById('confirm-modal-msg').innerHTML = msg;
             icon.style.color = color;
@@ -371,10 +431,8 @@
                     const { sku, cat, usage, qty } = pendingAction.data;
                     executeCommit(sku, cat, usage, qty);
                 } else if (pendingAction.type === 'DELETE_SKU') {
-                    try {
-                        await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'stock', pendingAction.data.sku));
-                        showToast(`🗑️ 已刪除料號: ${pendingAction.data.sku}`);
-                    } catch (e) { showToast("❌ 刪除失敗"); }
+                    await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'stock', pendingAction.data.sku));
+                    showToast(`🗑️ 已刪除料號`);
                 }
             }
             pendingAction = null;
@@ -394,13 +452,13 @@
 
         function renderStock(data) {
             const list = document.getElementById('stock-list');
-            if (!data.length) return list.innerHTML = '<div class="text-center py-20 text-slate-300">清單為空</div>';
+            if (!data.length) return list.innerHTML = '<div class="text-center py-20 text-slate-300">庫存為空</div>';
             list.innerHTML = data.map(i => `
                 <div class="bg-white p-4 rounded-2xl border border-slate-100 flex justify-between items-center shadow-sm" onclick="applySuggestion('${i.sku}'); switchTab('action');">
-                    <div class="flex-1 pr-2">
-                        <div class="flex items-center gap-1.5 mb-1">
+                    <div class="flex-1 pr-2 text-left">
+                        <div class="flex items-center gap-1.5 mb-1 flex-wrap">
                             <span class="text-[8px] font-black bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded uppercase">${i.category}</span>
-                            ${i.usage ? `<span class="text-[8px] font-bold bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded italic">用：${i.usage}</span>` : ''}
+                            ${i.usage ? `<span class="text-[8px] font-bold bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded italic">位：${i.usage}</span>` : ''}
                         </div>
                         <div class="font-black text-slate-800 text-sm break-all">${i.sku}</div>
                     </div>
@@ -415,15 +473,16 @@
             const list = document.getElementById('history-list');
             list.innerHTML = logs.slice(0, 30).map(l => `
                 <div class="bg-white p-3 rounded-xl border border-slate-50 flex justify-between items-center text-[10px] shadow-sm">
-                    <div><div class="font-bold text-slate-800">${l.sku}</div><div class="text-slate-400">${l.op} • ${l.timestamp ? new Date(l.timestamp.toMillis()).toLocaleTimeString() : '...'}</div></div>
+                    <div class="text-left"><div class="font-bold text-slate-800">${l.sku}</div><div class="text-slate-400">工號: ${l.op} • ${l.timestamp ? new Date(l.timestamp.toMillis()).toLocaleTimeString() : '...'}</div></div>
                     <div class="font-black ${l.type==='IN'?'text-blue-500':(l.type==='OUT'?'text-orange-500':'text-emerald-500')}">${l.type} ${l.change}</div>
                 </div>`).join('');
         }
 
+        // --- 工具函數 ---
         window.setMode = (m) => {
             currentMode = m;
             ['IN','OUT','COUNT'].forEach(x => {
-                document.getElementById(`mode-${x.toLowerCase()}`).className = x === m ? 'flex-1 py-2 rounded-lg bg-blue-600 text-white font-bold text-xs' : 'flex-1 py-2 rounded-lg text-slate-400 font-bold text-xs';
+                document.getElementById(`mode-${x.toLowerCase()}`).className = x === m ? 'flex-1 py-2 rounded-lg bg-blue-600 text-white font-bold text-xs shadow-md' : 'flex-1 py-2 rounded-lg text-slate-400 font-bold text-xs';
             });
             const btn = document.getElementById('btn-submit');
             btn.innerText = m==='IN'?'確認入庫':(m==='OUT'?'確認出庫':'修正存量');
@@ -439,15 +498,18 @@
 
         window.stepQty = (v) => {
             const i = document.getElementById('input-qty');
-            i.value = Math.max(1, (parseInt(i.value) || 0) + v);
+            i.value = Math.max(0, (parseInt(i.value) || 0) + v);
         };
 
         window.toggleCategoryManager = (s) => document.getElementById('category-modal').classList.toggle('hidden', !s);
+        
         window.addNewCategory = async () => {
-            const n = document.getElementById('new-category-name').value.trim();
-            if (!n || categories.includes(n)) return;
-            await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'categories', 'all'), { list: [...categories, n] });
-            document.getElementById('new-category-name').value = "";
+            const input = document.getElementById('new-category-name');
+            const name = input.value.trim();
+            if (!name) return;
+            const newList = [...categories, name];
+            await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'categories', 'all'), { list: newList });
+            input.value = "";
         };
 
         window.removeCategory = async (n) => {
@@ -456,56 +518,19 @@
 
         window.exportAllData = () => {
             if (!window.cachedStock) return;
-            let csv = "\uFEFF料號,類別,用途,庫存數量\n";
+            let csv = "\uFEFF料號,類別,位置/用途,庫存數量\n";
             window.cachedStock.forEach(i => csv += `"${i.sku}","${i.category}","${i.usage||""}",${i.qty}\n`);
             const blob = new Blob([csv], { type: 'text/csv' });
-            const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
-            a.href = url;
-            a.download = `CloudInventory.csv`;
+            a.href = URL.createObjectURL(blob);
+            a.download = `Storage_Report_${new Date().toLocaleDateString()}.csv`;
             a.click();
         };
-
-        window.triggerImport = () => document.getElementById('csv-file-input').click();
-        window.handleFileSelect = (event) => {
-            const file = event.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = async (e) => { await processCSV(e.target.result); event.target.value = ''; };
-            reader.readAsText(file);
-        };
-
-        async function processCSV(csvText) {
-            showToast("⏳ 匯入中...");
-            const rows = csvText.split(/\r?\n/).filter(r => r.trim() !== "");
-            const batch = writeBatch(db);
-            let count = 0;
-            let newCats = new Set(categories);
-            try {
-                for (let i = 1; i < rows.length; i++) {
-                    const cols = rows[i].split(",").map(c => c.trim().replace(/^"|"$/g, ""));
-                    if (cols.length < 2) continue;
-                    const [sku, cat, usage, qtyStr] = cols;
-                    const qty = parseInt(qtyStr) || 0;
-                    if (!sku) continue;
-                    batch.set(doc(db, 'artifacts', appId, 'public', 'data', 'stock', sku), {
-                        sku, category: cat || "其他", usage: usage || "", qty, lastOp: operatorName + "(匯入)", time: serverTimestamp()
-                    });
-                    if (cat) newCats.add(cat);
-                    count++;
-                }
-                if (newCats.size > categories.length) {
-                    batch.update(doc(db, 'artifacts', appId, 'public', 'data', 'categories', 'all'), { list: Array.from(newCats) });
-                }
-                await batch.commit();
-                showToast(`✅ 成功匯入 ${count} 筆`);
-            } catch (err) { showToast("❌ 格式不符"); }
-        }
 
         window.startScanner = async () => {
             document.getElementById('scanner-view').classList.remove('hidden');
             html5QrCode = new Html5Qrcode("reader");
-            await html5QrCode.start({ facingMode: "environment" }, { fps: 20, qrbox: 220 }, (t) => {
+            await html5QrCode.start({ facingMode: "environment" }, { fps: 20, qrbox: 240 }, (t) => {
                 document.getElementById('input-sku').value = t;
                 window.onSkuTyping(t);
                 stopScanner();
@@ -522,6 +547,10 @@
             t.innerText = m; t.style.opacity = "1";
             setTimeout(() => t.style.opacity = "0", 2000);
         }
+
+        document.addEventListener('click', (e) => {
+            if (e.target.id !== 'input-sku') document.getElementById('sku-suggestions').classList.add('hidden');
+        });
 
         init();
     </script>
