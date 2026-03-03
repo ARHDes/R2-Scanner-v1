@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>線邊倉助手 V14.8</title>
-    <!-- [Debug 工具] 引入 Eruda：這能讓你在手機看到控制台 -->
+    <title>線邊倉助手 V14.9</title>
+    <!-- [手機 Debug 工具] 齒輪圖示點開可以看 Console -->
     <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
     <script>eruda.init();</script>
     
@@ -14,64 +14,166 @@
     <style>
         body { -webkit-tap-highlight-color: transparent; }
         .tab-active { border-bottom: 3px solid #2563eb; color: #2563eb; font-weight: 800; }
+        input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        .suggestion-item { padding: 10px 14px; border-bottom: 1px solid #f1f5f9; cursor: pointer; }
+        .suggestion-item:active { background: #eff6ff; }
+        .admin-glow { box-shadow: 0 0 15px rgba(245, 158, 11, 0.3); border: 1px solid rgba(245, 158, 11, 0.5); }
+        .hide-scroll::-webkit-scrollbar { display: none; }
         .unit-badge { display: inline-block; background: #f1f5f9; color: #334155; padding: 2px 8px; border-radius: 6px; font-size: 10px; margin-right: 4px; font-weight: 900; border: 1px solid #e2e8f0; }
         .clear-btn { opacity: 0; pointer-events: none; transition: all 0.2s; transform: scale(0.8); }
         .clear-btn.show { opacity: 1; pointer-events: auto; transform: scale(1); }
+        #reader__scan_region { border-radius: 20px; overflow: hidden; }
+        #reader__dashboard { display: none !important; }
     </style>
 </head>
 <body class="bg-slate-50 min-h-screen pb-20 font-sans text-slate-900 text-left">
 
-    <!-- 登錄畫面與導覽列保持不變... (省略重複部分以節省篇幅，JS 部分是關鍵) -->
+    <!-- 登錄頁面 -->
     <div id="setup-overlay" class="fixed inset-0 bg-blue-600 z-[1000] flex items-center justify-center p-6 hidden text-center">
-        <div class="bg-white rounded-3xl p-8 w-full max-w-sm shadow-2xl">
-            <h2 class="text-2xl font-black mb-2">工號登錄</h2>
-            <input type="text" id="operator-name-input" placeholder="請輸入工號" class="w-full border-2 rounded-xl px-4 py-3 mb-4 text-center font-bold">
-            <button onclick="saveOperatorName()" class="w-full bg-blue-600 text-white py-4 rounded-xl font-bold">確認進入</button>
+        <div class="bg-white rounded-3xl p-8 w-full max-w-sm shadow-2xl border-4 border-blue-400">
+            <h2 class="text-2xl font-black mb-2 text-slate-800 tracking-tight">工號登錄</h2>
+            <p class="text-slate-500 text-sm mb-6 font-medium text-center">請輸入員工編號以開始作業</p>
+            <input type="text" id="operator-name-input" placeholder="請輸入工號" class="w-full border-2 border-slate-100 rounded-xl px-4 py-3 mb-4 outline-none focus:border-blue-500 text-center font-bold text-lg">
+            <button onclick="saveOperatorName()" class="w-full bg-blue-600 text-white py-4 rounded-xl font-bold shadow-lg active:scale-95 transition-all text-center">確認進入系統</button>
         </div>
     </div>
 
-    <nav id="top-nav" class="bg-white border-b px-4 py-3 sticky top-0 z-50 flex justify-between items-center shadow-sm">
+    <!-- 導覽列 -->
+    <nav id="top-nav" class="bg-white border-b border-slate-200 px-4 py-3 sticky top-0 z-50 flex justify-between items-center shadow-sm">
         <div class="flex items-center gap-2">
-            <div class="flex flex-col">
-                <span id="admin-badge" class="hidden text-[8px] font-black bg-amber-500 text-white px-1.5 py-0.5 rounded-full mb-0.5 uppercase">管理模式</span>
+            <div class="flex flex-col text-left">
+                <span id="admin-badge" class="hidden text-[8px] font-black bg-amber-500 text-white px-1.5 py-0.5 rounded-full w-fit mb-0.5 uppercase shadow-sm">管理模式</span>
                 <span class="text-[10px] font-black text-slate-400">線邊倉助手</span>
-                <span id="display-operator" class="text-sm font-bold text-slate-700">載入中...</span>
+                <span id="display-operator" class="text-sm font-bold text-slate-700 font-mono tracking-tight">載入中...</span>
             </div>
         </div>
         <div class="flex items-center gap-1.5">
-            <button id="admin-toggle-btn" onclick="toggleAdminMode()" class="hidden p-2 bg-amber-50 text-amber-600 rounded-lg border border-amber-100"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg></button>
-            <button onclick="toggleSettingsManager(true)" class="p-2 bg-slate-100 rounded-lg text-slate-600"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg></button>
+            <button id="admin-toggle-btn" onclick="toggleAdminMode()" class="hidden p-2 bg-amber-50 text-amber-600 rounded-lg border border-amber-100 active:scale-90"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg></button>
+            <button onclick="toggleSettingsManager(true)" class="p-2 bg-slate-100 rounded-lg text-slate-600 active:scale-90"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg></button>
+            <button onclick="logout()" class="p-2 bg-red-50 text-red-500 rounded-lg border border-red-100 active:scale-90"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg></button>
         </div>
     </nav>
 
     <main class="max-w-md mx-auto p-4 space-y-4">
+        <!-- 分頁控制 -->
         <div class="flex bg-white rounded-xl p-1 shadow-sm border text-center">
             <button onclick="switchTab('action')" id="tab-action" class="flex-1 py-2 text-sm font-bold tab-active">操作頁面</button>
             <button onclick="switchTab('stock')" id="tab-stock" class="flex-1 py-2 text-sm font-bold text-slate-400">現存庫存</button>
             <button onclick="switchTab('history')" id="tab-history" class="flex-1 py-2 text-sm font-bold text-slate-400">歷史紀錄</button>
         </div>
 
-        <div id="section-action" class="space-y-4"><div class="bg-white rounded-2xl p-5 shadow-sm border space-y-4 text-left">...操作介面...</div></div>
-        <div id="section-stock" class="hidden space-y-4">
+        <!-- A. 操作頁面 -->
+        <div id="section-action" class="space-y-4 animate-in fade-in duration-300">
+            <div class="bg-white rounded-2xl p-5 shadow-sm border space-y-4 text-left">
+                <div class="flex justify-between items-center px-1">
+                    <div class="flex gap-2 p-1 bg-slate-50 rounded-xl flex-1 mr-4">
+                        <button onclick="setMode('IN')" id="mode-in" class="flex-1 py-2 rounded-lg bg-blue-600 text-white font-bold text-xs shadow-md">入庫</button>
+                        <button onclick="setMode('OUT')" id="mode-out" class="flex-1 py-2 rounded-lg text-slate-400 font-bold text-xs">出庫</button>
+                        <button onclick="setMode('COUNT')" id="mode-count" class="flex-1 py-2 rounded-lg text-slate-400 font-bold text-xs">盤點</button>
+                    </div>
+                    <button onclick="resetActionFields()" class="text-blue-500 text-[10px] font-bold border-b border-blue-200">重設內容</button>
+                </div>
+                <div class="space-y-3">
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="space-y-1"><label class="text-[10px] font-bold text-slate-400 uppercase ml-1">機群</label><select id="input-group" class="w-full bg-slate-50 border-0 rounded-xl px-4 py-3 text-sm font-bold text-slate-800 outline-none focus:ring-2 focus:ring-blue-500"></select></div>
+                        <div class="space-y-1"><label class="text-[10px] font-bold text-slate-400 uppercase ml-1">Unit名稱</label><input type="text" id="input-unit" placeholder="例如：PC" class="w-full bg-slate-50 border-0 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-blue-500"></div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="space-y-1"><label class="text-[10px] font-bold text-slate-400 uppercase ml-1">類別</label><select id="input-category" class="w-full bg-slate-50 border-0 rounded-xl px-4 py-3 text-sm font-bold text-slate-800 outline-none focus:ring-2 focus:ring-blue-500"></select></div>
+                        <div class="space-y-1"><label class="text-[10px] font-bold text-slate-400 uppercase ml-1">位置 / 用途</label><input type="text" id="input-usage" placeholder="備註位置..." class="w-full bg-slate-50 border-0 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-blue-500"></div>
+                    </div>
+                    <div class="space-y-1"><label class="text-[10px] font-bold text-slate-400 uppercase ml-1">型號 (Model)</label><input type="text" id="input-model" placeholder="零件規格型號..." class="w-full bg-slate-50 border-0 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-blue-500 font-mono"></div>
+                    <div class="space-y-1">
+                        <label class="text-[10px] font-bold text-slate-400 uppercase ml-1">料號 / 條碼</label>
+                        <div class="flex gap-2">
+                            <div class="relative flex-1">
+                                <input type="text" id="input-sku" oninput="onSkuTyping(this.value)" placeholder="搜尋料號..." class="w-full bg-slate-50 border-0 rounded-xl pl-4 pr-10 py-3 text-sm outline-none focus:ring-2 focus:ring-blue-500 font-mono" autocomplete="off">
+                                <button id="btn-clear-sku" onclick="clearSkuInput()" class="clear-btn absolute right-3 top-1/2 -translate-y-1/2 text-slate-300"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+                            </div>
+                            <button onclick="startScanner()" class="bg-blue-100 text-blue-600 p-3 rounded-xl"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"></path></svg></button>
+                        </div>
+                        <div id="sku-suggestions" class="absolute left-0 right-0 bg-white border border-slate-200 rounded-xl shadow-xl z-50 mt-1 hidden max-h-60 overflow-y-auto"></div>
+                    </div>
+                    <div class="space-y-1 text-center">
+                        <label class="text-[10px] font-bold text-slate-400 uppercase ml-1 text-left">異動數量</label>
+                        <div class="flex items-center bg-slate-50 rounded-xl p-1">
+                            <button onclick="stepQty(-1)" class="w-12 h-10 bg-white rounded-lg shadow-sm font-bold text-xl">-</button>
+                            <input type="number" id="input-qty" value="1" class="flex-1 bg-transparent text-center font-black text-xl outline-none">
+                            <button onclick="stepQty(1)" class="w-12 h-10 bg-white rounded-lg shadow-sm font-bold text-xl">+</button>
+                        </div>
+                    </div>
+                    <button id="btn-submit" onclick="submitTransaction()" class="w-full bg-blue-600 text-white py-4 rounded-xl font-black text-lg shadow-xl shadow-blue-100 active:scale-95 transition-all text-center">確認入庫</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- B. 庫存分頁 -->
+        <div id="section-stock" class="hidden space-y-4 animate-in fade-in duration-300">
             <div class="bg-white p-4 rounded-2xl shadow-sm border space-y-3 text-left">
                 <div class="flex justify-between items-center px-1">
                     <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-black">條件篩選</span>
-                    <div class="flex gap-2">
-                        <button onclick="resetStockFilters()" class="text-orange-500 text-[10px] font-bold border-b border-orange-200">清除篩選</button>
+                    <div class="flex gap-3 items-center">
+                        <button onclick="resetStockFilters()" class="text-orange-500 text-[10px] font-bold border-b border-orange-200 pb-0.5">清除篩選</button>
+                        <button onclick="openImportModal()" class="text-blue-600 text-[10px] font-bold border-b border-blue-200 pb-0.5">文字匯入</button>
                         <button onclick="exportAndShareStock()" class="text-emerald-600 text-[10px] font-bold border-b border-emerald-200">匯出分享</button>
                     </div>
                 </div>
-                <div class="grid grid-cols-2 gap-2"><select id="filter-group" onchange="onFilterGroupChange()" class="bg-slate-50 border-0 rounded-lg px-3 py-2 font-bold text-xs"></select><select id="filter-unit" onchange="onFilterUnitChange()" class="bg-slate-50 border-0 rounded-lg px-3 py-2 font-bold text-xs"></select></div>
-                <input type="text" id="filter-usage" oninput="applyFilters()" placeholder="搜尋關鍵字..." class="w-full bg-slate-50 border-0 rounded-lg px-3 py-2.5 text-xs font-bold">
+                <div class="grid grid-cols-2 gap-2 text-xs">
+                    <select id="filter-group" onchange="onFilterGroupChange()" class="bg-slate-50 border-0 rounded-lg px-3 py-2 font-bold outline-none focus:ring-1 focus:ring-blue-500 shadow-inner"></select>
+                    <select id="filter-unit" onchange="onFilterUnitChange()" class="bg-slate-50 border-0 rounded-lg px-3 py-2 font-bold outline-none focus:ring-1 focus:ring-blue-500 shadow-inner"></select>
+                </div>
+                <div class="grid grid-cols-1 text-xs">
+                    <select id="filter-category" onchange="applyFilters()" class="w-full bg-slate-50 border-0 rounded-lg px-3 py-2.5 font-bold outline-none focus:ring-1 focus:ring-blue-500 shadow-inner"></select>
+                </div>
+                <div class="relative">
+                    <input type="text" id="filter-usage" oninput="applyFilters()" placeholder="搜尋關鍵字..." class="w-full bg-slate-50 border-0 rounded-lg pl-3 pr-10 py-2.5 text-xs font-bold outline-none focus:ring-1 focus:ring-blue-500 shadow-inner">
+                    <button id="btn-clear-search" onclick="clearSearchInput()" class="clear-btn absolute right-3 top-1/2 -translate-y-1/2 text-slate-300"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+                </div>
             </div>
-            <!-- 這裡是庫存顯示區 -->
             <div id="stock-list" class="space-y-2"></div>
         </div>
-        <div id="section-history" class="hidden"><div id="history-list" class="space-y-2"></div></div>
+
+        <!-- C. 歷史紀錄 -->
+        <div id="section-history" class="hidden space-y-3 animate-in fade-in duration-300 text-left"><div id="history-list" class="space-y-2"></div></div>
     </main>
+
+    <!-- 彈窗群 -->
+    <div id="comment-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[4800] hidden flex items-center justify-center p-6 text-center" onclick="window.closeCommentModal()">
+        <div class="bg-white w-full max-w-sm rounded-3xl p-6 space-y-4 shadow-2xl text-left" onclick="event.stopPropagation()">
+            <div class="text-center font-black"><h3 class="text-lg">紀錄備註 (Comment)</h3><p class="text-[10px] text-slate-400 mt-1">選填內容，將同步儲存</p></div>
+            <textarea id="transaction-comment" placeholder="輸入異動原因..." class="w-full h-24 bg-slate-50 border border-slate-200 rounded-2xl p-3 text-sm outline-none focus:border-blue-500"></textarea>
+            <div class="flex gap-3 text-center"><button onclick="window.closeCommentModal()" class="flex-1 py-3 bg-slate-100 rounded-xl font-bold text-slate-500">取消</button><button onclick="confirmTransactionWithComment()" class="flex-1 py-3 bg-blue-600 text-white rounded-xl font-bold shadow-lg">確認送出</button></div>
+        </div>
+    </div>
+
+    <div id="context-picker-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[4500] hidden flex items-center justify-center p-6 text-center" onclick="window.closeContextPicker()">
+        <div class="bg-white w-full max-w-sm rounded-3xl p-6 space-y-4 shadow-2xl text-left" onclick="event.stopPropagation()">
+            <div class="text-center font-black"><h3>機台用途選取</h3><p class="text-[10px] text-slate-400">此為共用料號請選取組合</p></div>
+            <div id="context-options-list" class="space-y-2 max-h-64 overflow-y-auto pr-1 hide-scroll"></div>
+            <button onclick="window.closeContextPicker()" class="w-full py-3 bg-slate-100 rounded-xl font-bold text-slate-500">取消</button>
+        </div>
+    </div>
+
+    <div id="import-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[2000] hidden flex items-center justify-center p-6 text-left" onclick="window.closeImportModal()">
+        <div class="bg-white w-full max-w-md rounded-3xl p-6 space-y-4 shadow-2xl text-left" onclick="event.stopPropagation()">
+            <div class="text-left"><h3 class="text-xl font-black text-slate-800 uppercase">智慧文字匯入</h3><p class="text-[10px] text-slate-400 mt-1 leading-relaxed">機群,Unit,類別,位置,料號,數量,型號</p></div>
+            <textarea id="import-text-area" placeholder="CSCR,PC,CYLINDER,Clamp,SKU,0,MODEL" class="w-full h-48 bg-slate-50 border-2 border-dashed border-slate-200 rounded-xl p-3 text-xs font-mono outline-none focus:border-blue-500"></textarea>
+            <div class="flex gap-3"><button onclick="window.closeImportModal()" class="flex-1 py-3 bg-slate-100 rounded-xl font-bold text-slate-500">取消</button><button onclick="processPastedText()" class="flex-1 py-3 bg-blue-600 text-white rounded-xl font-bold">開始匯入</button></div>
+        </div>
+    </div>
+
+    <div id="scanner-view" class="fixed inset-0 bg-black z-[6000] hidden flex flex-col text-left">
+        <div class="bg-black/60 p-6 flex justify-between items-center text-white">
+            <div class="font-black tracking-tight">條碼掃描</div>
+            <button onclick="stopScanner()" class="bg-white/10 p-2 rounded-full"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+        </div>
+        <div id="reader" class="flex-1 bg-black"></div>
+        <div class="p-10 bg-black/80 text-center"><p class="text-white/40 text-[10px] font-bold mb-4 uppercase">長形條碼請置於框內</p><button onclick="stopScanner()" class="w-full bg-red-600 text-white py-4 rounded-2xl font-black">關閉相機</button></div>
+    </div>
 
     <div id="toast" class="fixed bottom-10 left-1/2 -translate-x-1/2 text-white px-6 py-3 rounded-full text-[12px] font-black opacity-0 transition-all z-[9000] shadow-2xl flex items-center gap-2"></div>
 
+    <!-- H. JavaScript 邏輯 (完全修復版) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
@@ -87,98 +189,131 @@
         let operatorId = localStorage.getItem('ims_op_v13_4'); 
         let currentMode = 'IN';
         let adminModeActive = false;
+        let categories = [];
+        let machineGroups = [];
 
         async function init() {
+            console.log("線邊倉助手 V14.9 初始化...");
             if (!operatorId) document.getElementById('setup-overlay').classList.remove('hidden');
             else { document.getElementById('display-operator').innerText = `👤 工號: ${operatorId}`; checkAdminStatus(); }
-            try { await signInAnonymously(auth); onAuthStateChanged(auth, (u) => { if (u) loadCloudData(); }); } catch (err) { console.error("Firebase Auth Error:", err); }
+            try { await signInAnonymously(auth); onAuthStateChanged(auth, (u) => { if (u) loadCloudData(); }); } catch (err) { console.error("Auth Error:", err); }
         }
 
+        // --- 修復：定義缺失的 checkAdminStatus ---
+        window.checkAdminStatus = function() {
+            if (operatorId === ADMIN_ID) {
+                document.getElementById('admin-toggle-btn').classList.remove('hidden');
+                document.getElementById('display-operator').classList.add('text-amber-600');
+            }
+        };
+
+        // --- 全域彈窗控制修復 ---
+        window.closeContextPicker = () => document.getElementById('context-picker-modal').classList.add('hidden');
+        window.closeCommentModal = () => document.getElementById('comment-modal').classList.add('hidden');
+        window.closeImportModal = () => document.getElementById('import-modal').classList.add('hidden');
+        window.toggleSettingsManager = (s) => document.getElementById('settings-modal').classList.toggle('hidden', !s);
+
         function loadCloudData() {
-            // [Debug] 開始讀取資料
-            console.log("開始從 Firestore 讀取資料...");
-            
+            onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'categories', 'all'), (s) => { 
+                categories = s.exists() ? s.data().list : ['培林', '氣壓缸']; 
+                renderCats(); 
+            });
+            onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'groups', 'all'), (s) => { 
+                machineGroups = s.exists() ? s.data().list : ['CSCR', 'CST', 'CV']; 
+                renderGroups(); 
+            });
             onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'stock'), (s) => {
                 const data = s.docs.map(d => d.data());
-                console.log("成功獲取庫存資料，共計:", data.length, "筆");
                 window.cachedStock = data;
-                renderStock(data); // 這裡會觸發渲染
-            }, (err) => {
-                console.error("Firestore 監聽失敗:", err);
-                showToast("連線失敗: " + err.message, false);
+                refreshInitialFilters(); 
+                applyFilters();
+            });
+            onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'history'), (s) => {
+                const logs = s.docs.map(d => ({ ...d.data(), id: d.id })).sort((a,b) => (b.timestamp?.toMillis() || 0) - (a.timestamp?.toMillis() || 0));
+                window.cachedHistory = logs;
+                renderHistory(logs);
             });
         }
 
-        // --- [關鍵試錯函數] renderStock ---
-        // 就像 C 語言的渲染循環，一旦其中一個數據指標錯誤，整個繪圖就會停止
+        // --- 核心渲染函數 ---
         function renderStock(data) {
             const list = document.getElementById('stock-list');
-            
-            // 防呆 1: 檢查 list 元素是否存在
-            if (!list) {
-                console.error("找不到 HTML 中的 stock-list 元素！");
-                return;
-            }
-
-            if (!data || data.length === 0) {
-                list.innerHTML = '<div class="py-20 text-slate-300 text-xs text-center uppercase">無庫存資料</div>';
-                return;
-            }
-
-            // 防呆 2: 使用 try...catch 捕捉循環中的崩潰
+            if (!data || data.length === 0) return list.innerHTML = '<div class="py-20 text-slate-300 text-xs text-center uppercase">目前無庫存</div>';
             try {
-                list.innerHTML = data.map((i, index) => {
-                    // [ Debug 點 ] 檢查 i 裡面的屬性
-                    // 在 C 語言這就是防範 Null Pointer
-                    const sku = i.sku || "未知料號";
-                    const groupStr = i.group || ""; // 如果是 null 就轉為空字串
-                    const unitStr = i.unit || "";
-                    
-                    // 這裡最容易噴錯：如果 groupStr 是 undefined，呼叫 .split 就會整組當機
-                    const gL = groupStr.split(",");
-                    const uL = unitStr.split(",");
-                    
-                    const badges = uL.map((u, idx) => {
-                        const g = gL[idx] || gL[0] || "未註明";
-                        return `<span class="unit-badge">${g}_${u}</span>`;
-                    }).join('');
-
-                    return `
-                    <div class="bg-white p-4 rounded-2xl border shadow-sm text-left mb-2">
+                list.innerHTML = data.map(i => {
+                    const gL = (i.group || "").split(",").map(s => s.trim()).filter(Boolean);
+                    const uL = (i.unit || "").split(",").map(s => s.trim()).filter(Boolean);
+                    const b = uL.map((u, idx) => `<span class="unit-badge">${(gL[idx] || gL[0] || "未註明")}_${u}</span>`).join('');
+                    return `<div class="bg-white p-4 rounded-2xl border border-slate-100 flex justify-between items-center shadow-sm active:bg-slate-50 transition-all text-left mb-2" onclick="autoFillStock('${i.sku}')">
                         <div class="flex-1">
-                            <div class="mb-1 flex flex-wrap gap-1">${badges}</div>
-                            <div class="text-[10px] font-black text-blue-600 font-mono">${i.model || ''}</div>
-                            <div class="font-black text-slate-800 text-sm font-mono">${sku}</div>
+                            <div class="mb-1 flex flex-wrap gap-1">${b}</div>
+                            <div class="text-[10px] font-black text-blue-600 font-mono">${i.model || '無型號'}</div>
+                            <div class="font-black text-slate-800 text-sm font-mono leading-none">${i.sku}</div>
                             <div class="text-[11px] text-slate-500 mt-2 font-black">
                                 <span class="text-slate-400 font-bold uppercase mr-1">${i.category || "其他"}</span> | 位：${i.usage || '未註明'}
                             </div>
                         </div>
-                        <div class="text-right mt-2">
-                            <span class="text-xl font-black font-mono">${i.qty}</span>
+                        <div class="flex items-center gap-3">
+                            <div class="text-xl font-black ${i.qty < 0 ? 'text-red-500' : 'text-slate-800'} font-mono">${i.qty}</div>
+                            ${adminModeActive ? `<button onclick="event.stopPropagation(); deleteStockItem('${i.sku}')" class="p-2 bg-red-50 text-red-500 rounded-lg active:scale-90"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>` : ''}
                         </div>
                     </div>`;
                 }).join('');
-                
-                console.log("渲染完成！");
-            } catch (err) {
-                // 如果失敗了，我們把報錯「印在網頁畫面上」
-                console.error("渲染過程出錯:", err);
-                list.innerHTML = `
-                    <div class="p-6 bg-red-50 text-red-600 rounded-xl border border-red-200 text-xs">
-                        <p class="font-black mb-2">⚠️ 程式執行崩潰 (C-Style Crash)</p>
-                        <p class="font-mono bg-white p-2 border rounded">${err.message}</p>
-                        <p class="mt-2">請點擊右下角齒輪查看 Console 找出出問題的資料筆數。</p>
-                    </div>`;
+            } catch (err) { console.error("Render Error:", err); }
+        }
+
+        // --- 智慧自動帶入 ---
+        window.autoFillStock = (sku) => {
+            const it = window.cachedStock.find(i => i.sku === sku);
+            if (!it) return;
+            const gL = (it.group || "").split(",").map(s => s.trim()).filter(Boolean);
+            const uL = (it.unit || "").split(",").map(s => s.trim()).filter(Boolean);
+            const usL = (it.usage || "").split(",").map(s => s.trim());
+            const versions = Math.max(gL.length, uL.length, usL.length);
+            if (versions > 1) showContextPicker(it, gL, uL, usL, false);
+            else applyContext(it.sku, gL[0] || "", uL[0] || "", it.category, usL[0] || "", it.model || "");
+        };
+
+        function showContextPicker(item, groups, units, usages, isDeleteMode = false) {
+            activePickerSku = item.sku;
+            const list = document.getElementById('context-options-list');
+            list.innerHTML = "";
+            document.getElementById('context-picker-modal').classList.remove('hidden');
+            const count = Math.max(groups.length, units.length, usages.length);
+            for (let i = 0; i < count; i++) {
+                const g = groups[i] || groups[0] || "";
+                const u = units[i] || units[0] || "";
+                const us = usages[i] || "";
+                const btn = document.createElement('button');
+                btn.className = "w-full p-4 border rounded-2xl text-left mb-2 bg-slate-50";
+                btn.innerHTML = `<span class="font-black text-blue-600 font-mono text-xs">${g}_${u}</span><div class="text-slate-800 text-xs mt-1">位：${us}</div>`;
+                btn.onclick = () => { applyContext(item.sku, g, u, item.category, us, item.model || ""); window.closeContextPicker(); };
+                list.appendChild(btn);
             }
         }
 
-        // 其餘功能簡化... 
-        window.saveOperatorName = () => { /* 儲存邏輯 */ };
-        window.switchTab = (t) => {
-            ['action','stock','history'].forEach(x => document.getElementById(`section-${x}`).classList.toggle('hidden', x !== t));
-            if (t === 'stock' && window.cachedStock) renderStock(window.cachedStock);
-        };
-        function showToast(m, s = true) { /* Toast 邏輯 */ }
+        function applyContext(sku, g, u, cat, usage, model) {
+            document.getElementById('input-sku').value = sku;
+            document.getElementById('input-model').value = model || "";
+            document.getElementById('input-group').value = machineGroups.includes(g) ? g : "";
+            document.getElementById('input-unit').value = u || "";
+            document.getElementById('input-category').value = cat || "";
+            document.getElementById('input-usage').value = usage || "";
+            switchTab('action'); showToast("已成功帶入組合", true);
+        }
+
+        // --- 基礎工具補完 ---
+        window.saveOperatorName = () => { const id = document.getElementById('operator-name-input').value.trim(); if (!id) return; localStorage.setItem('ims_op_v13_4', id); location.reload(); };
+        window.logout = () => { if (confirm("登出？")) { localStorage.removeItem('ims_op_v13_4'); location.reload(); } };
+        window.toggleAdminMode = () => { adminModeActive = !adminModeActive; document.getElementById('top-nav').classList.toggle('admin-glow', adminModeActive); document.getElementById('admin-badge').classList.toggle('hidden', !adminModeActive); renderStock(window.cachedStock); renderHistory(window.cachedHistory); };
+        window.switchTab = (t) => { ['action','stock','history'].forEach(x => { document.getElementById(`section-${x}`).classList.toggle('hidden', x !== t); document.getElementById(`tab-${x}`).className = `flex-1 py-2 text-sm font-bold ${x === t ? 'tab-active' : 'text-slate-400'}`; }); };
+        window.setMode = (m) => { currentMode = m; ['in','out','count'].forEach(x => document.getElementById(`mode-${x}`).className = `flex-1 py-2 rounded-lg font-bold text-xs ${x === m.toLowerCase() ? 'bg-blue-600 text-white' : 'text-slate-400'}`); document.getElementById('btn-submit').innerText = m==='IN'?'確認入庫':(m==='OUT'?'確認出庫':'確認盤點'); };
+        window.stepQty = (v) => { const i = document.getElementById('input-qty'); i.value = Math.max(0, (parseInt(i.value) || 0) + v); };
+        window.clearSkuInput = () => { document.getElementById('input-sku').value = ""; document.getElementById('sku-suggestions').classList.add('hidden'); };
+        window.resetActionFields = () => { document.getElementById('input-sku').value = ""; document.getElementById('input-model').value = ""; document.getElementById('input-unit').value = ""; document.getElementById('input-usage').value = ""; document.getElementById('input-qty').value = "1"; };
+        window.showToast = (m, s = true) => { const t = document.getElementById('toast'); t.className = `fixed bottom-10 left-1/2 -translate-x-1/2 text-white px-6 py-3 rounded-full text-[12px] font-black opacity-0 transition-all z-[9000] shadow-2xl flex items-center gap-2 ${s ? 'bg-emerald-600' : 'bg-red-600'}`; t.innerHTML = `${s?'✅':'❌'} ${m}`; t.style.opacity = "1"; setTimeout(() => t.style.opacity = "0", 3000); };
+        
+        // --- 初始化啟動 ---
         init();
     </script>
 </body>
