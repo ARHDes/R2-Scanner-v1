@@ -282,7 +282,7 @@
         import { getFirestore, collection, doc, setDoc, addDoc, onSnapshot, serverTimestamp, getDoc, writeBatch, deleteDoc, runTransaction } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const firebaseConfig = { apiKey: "AIzaSyDlrIJR7wKN_lzcTiC2ohe8jeXaC3mZXdk", authDomain: "storage-3098e.firebaseapp.com", projectId: "storage-3098e", storageBucket: "storage-3098e.firebasestorage.app", messagingSenderId: "947569272384", appId: "1:947569272384:web:badb6b78e91e36cee5a1a5", measurementId: "G-1WEQXLGR20" };
-        const app = initializeApp(firebaseConfig); const auth = getAuth(app); const db = getFirestore(app); const appId = 'shared-ims-storage-3098e';
+        const app = initializeApp(firebaseConfig); const auth = getAuth(app); const db = getFirestore(app); const appId = 'shared-ims-storage-3098e'; const ADMIN_ID = 'Admin'; 
 
         window.operatorId = localStorage.getItem('ims_op_v13_4'); 
         window.currentMode = 'IN';
@@ -302,7 +302,7 @@
         window.formEditSku = null;
         window.formEditIndex = null;
 
-        // Gemini API Key (由環境注入)
+        // Gemini API Key (已填入您的專屬金鑰)
         const geminiApiKey = "AIzaSyDwBZ0GtF0GYdv7SLFmURnXr4ToKNhY9NY"; 
 
         document.addEventListener('click', (e) => { 
