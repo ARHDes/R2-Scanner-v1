@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>線邊倉助手 V3.1.0</title>
+    <title>線邊倉助手 V3.1.1</title>
     <!-- 手機 Debug 工具 -->
     <script src="https://cdn.jsdelivr.net/npm/eruda"></script><script>eruda.init();</script>
     <script src="https://unpkg.com/html5-qrcode"></script>
@@ -39,7 +39,7 @@
         <div class="flex items-center gap-2">
             <div class="flex flex-col text-left">
                 <span id="admin-badge" class="hidden text-[8px] font-black bg-amber-500 text-white px-1.5 py-0.5 rounded-full w-fit mb-0.5 uppercase shadow-sm">管理模式</span>
-                <span class="text-[10px] font-black text-slate-400 uppercase tracking-tighter">線邊倉助手 V3.1.0</span>
+                <span class="text-[10px] font-black text-slate-400 uppercase tracking-tighter">線邊倉助手 V3.1.1</span>
                 <span id="display-operator" class="text-sm font-bold text-slate-700 font-mono tracking-tight leading-none text-left">載入中...</span>
             </div>
         </div>
@@ -370,7 +370,12 @@
         window.stepQty = (v) => { const i = document.getElementById('input-qty'); i.value = Math.max(0, (parseInt(i.value) || 0) + v); };
 
         window.updateUnitDropdown = () => { const selG = document.getElementById('filter-group')?.value || ""; const uSet = new Set(); window.cachedStock.forEach(i => { const gL = (i.group || "").split(","); const uL = (i.unit || "").split(","); if (!selG) uL.forEach(u => uSet.add(u.trim())); else uL.forEach((u, idx) => { if (gL[idx]?.trim() === selG || gL[0]?.trim() === selG) uSet.add(u.trim()); }); }); const filterUnit = document.getElementById('filter-unit'); if(filterUnit) filterUnit.innerHTML = '<option value="">所有 Unit</option>' + Array.from(uSet).filter(Boolean).sort().map(u => `<option value="${u}">${u}</option>`).join(''); };
-        window.refreshInitialFilters = () => { const gS = new Set(); window.cachedStock.forEach(i => (i.group || "").split(",").forEach(s => gS.add(s.trim()))); const fG = document.getElementById('filter-group'); if (fG) fG.innerHTML = '<option value="">所有機群</option>' + Array.from(gS).filter(Boolean).sort().map(g => `<option value="${g}">${g}</option>`).join(''); window.renderOptions(); window.updateUnitDropdown(); };
+        window.refreshInitialFilters = () => { 
+            const gS = new Set(); window.cachedStock.forEach(i => (i.group || "").split(",").forEach(s => gS.add(s.trim()))); 
+            const fG = document.getElementById('filter-group'); if (fG) fG.innerHTML = '<option value="">所有機群</option>' + Array.from(gS).filter(Boolean).sort().map(g => `<option value="${g}">${g}</option>`).join(''); 
+            const filterCat = document.getElementById('filter-category'); if (filterCat) { const cSet = new Set(window.cachedStock.map(i => i.category).filter(Boolean)); filterCat.innerHTML = '<option value="">所有類別</option>' + Array.from(cSet).sort().map(c => `<option value="${c}">${c}</option>`).join(''); }
+            window.renderOptions(); window.updateUnitDropdown(); 
+        };
 
         window.applyFilters = () => {
             const gF = document.getElementById('filter-group')?.value || ""; const uF = document.getElementById('filter-unit')?.value || ""; const cF = document.getElementById('filter-category')?.value || ""; const search = document.getElementById('filter-usage')?.value.trim().toLowerCase() || "";
