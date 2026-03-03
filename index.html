@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>線邊倉助手 V2.1.0</title>
+    <title>線邊倉助手 V2.1.1</title>
     <!-- 手機 Debug 工具 -->
     <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
     <script>eruda.init();</script>
@@ -43,7 +43,7 @@
         <div class="flex items-center gap-2">
             <div class="flex flex-col text-left">
                 <span id="admin-badge" class="hidden text-[8px] font-black bg-amber-500 text-white px-1.5 py-0.5 rounded-full w-fit mb-0.5 uppercase shadow-sm">管理模式</span>
-                <span class="text-[10px] font-black text-slate-400 uppercase tracking-tighter">線邊倉助手 V2.1.0</span>
+                <span class="text-[10px] font-black text-slate-400 uppercase tracking-tighter">線邊倉助手 V2.1.1</span>
                 <span id="display-operator" class="text-sm font-bold text-slate-700 font-mono tracking-tight leading-none text-left">載入中...</span>
             </div>
         </div>
@@ -126,7 +126,7 @@
                     <select id="filter-unit" onchange="window.onFilterUnitChange()" class="bg-slate-50 border-0 rounded-lg px-3 py-2 font-bold outline-none focus:ring-1 focus:ring-blue-500 font-mono text-xs"></select>
                 </div>
                 <select id="filter-category" onchange="window.applyFilters()" class="w-full bg-slate-50 border-0 rounded-lg px-3 py-2.5 font-bold outline-none focus:ring-1 focus:ring-blue-500 text-xs text-left"></select>
-                <input type="text" id="filter-usage" oninput="window.applyFilters()" placeholder="搜尋型號、料號、位置關鍵字..." class="w-full bg-slate-50 border-0 rounded-lg px-3 py-2.5 text-xs font-bold outline-none focus:ring-1 focus:ring-blue-500">
+                <input type="text" id="filter-usage" oninput="window.applyFilters()" placeholder="搜尋型號、料號、關鍵字..." class="w-full bg-slate-50 border-0 rounded-lg px-3 py-2.5 text-xs font-bold outline-none focus:ring-1 focus:ring-blue-500">
             </div>
             <div id="stock-list" class="space-y-2"></div>
         </div>
@@ -187,13 +187,14 @@
         <div class="p-10 bg-black/80 text-center text-center"><p class="text-white/40 text-[10px] font-bold mb-4 uppercase text-center">長形條碼請置於框內</p><button onclick="window.stopScanner()" class="w-full bg-red-600 text-white py-4 rounded-2xl font-black">關閉相機</button></div>
     </div>
 
-    <div id="toast" class="fixed bottom-10 left-1/2 -translate-x-1/2 text-white px-6 py-3 rounded-full text-[12px] font-black opacity-0 transition-all z-[9000] shadow-2xl flex items-center gap-2 text-center text-center"></div>
+    <div id="toast" class="fixed bottom-10 left-1/2 -translate-x-1/2 text-white px-6 py-3 rounded-full text-[12px] font-black opacity-0 transition-all z-[9000] shadow-2xl flex items-center gap-2 text-center"></div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, doc, setDoc, addDoc, onSnapshot, serverTimestamp, getDoc, writeBatch, deleteDoc, runTransaction } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
+        // Firebase 初始化
         const firebaseConfig = { apiKey: "AIzaSyDlrIJR7wKN_lzcTiC2ohe8jeXaC3mZXdk", authDomain: "storage-3098e.firebaseapp.com", projectId: "storage-3098e", storageBucket: "storage-3098e.firebasestorage.app", messagingSenderId: "947569272384", appId: "1:947569272384:web:badb6b78e91e36cee5a1a5", measurementId: "G-1WEQXLGR20" };
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
@@ -201,19 +202,19 @@
         const appId = 'shared-ims-storage-3098e'; 
         const ADMIN_ID = 'Admin'; 
 
-        // 狀態變數
-        let operatorId = localStorage.getItem('ims_op_v13_4'); 
-        let currentMode = 'IN';
-        let adminModeActive = false;
-        let categories = [];
-        let machineGroups = [];
-        let html5QrCode = null;
-        let pendingTransaction = null;
-        let activePickerSku = null;
-        let cachedStock = [];
-        let cachedHistory = [];
+        // 全域變數
+        window.operatorId = localStorage.getItem('ims_op_v13_4'); 
+        window.currentMode = 'IN';
+        window.adminModeActive = false;
+        window.categories = [];
+        window.machineGroups = [];
+        window.html5QrCode = null;
+        window.pendingTransaction = null;
+        window.activePickerSku = null;
+        window.cachedStock = [];
+        window.cachedHistory = [];
 
-        // --- 點擊外部隱藏選單 ---
+        // 點擊外部隱藏提示清單
         document.addEventListener('click', (e) => {
             if (e.target.id !== 'input-sku') {
                 const sugg = document.getElementById('sku-suggestions');
@@ -221,92 +222,116 @@
             }
         });
 
-        // 1. 初始化與登入
+        // ==========================================
+        // 所有函數強制掛載於 window
+        // ==========================================
+
         window.init = async () => {
-            if (!operatorId) document.getElementById('setup-overlay').classList.remove('hidden');
-            else { 
-                document.getElementById('display-operator').innerText = `👤 工號: ${operatorId}`; 
+            if (!window.operatorId) {
+                document.getElementById('setup-overlay').classList.remove('hidden');
+            } else { 
+                document.getElementById('display-operator').innerText = `👤 工號: ${window.operatorId}`; 
                 window.checkAdminStatus(); 
             }
-            try { await signInAnonymously(auth); onAuthStateChanged(auth, (u) => { if (u) window.loadCloudData(); }); } catch (err) {}
+            try { 
+                await signInAnonymously(auth); 
+                onAuthStateChanged(auth, (u) => { if (u) window.loadCloudData(); }); 
+            } catch (err) {}
         };
 
-        window.checkAdminStatus = function() {
-            if (operatorId === ADMIN_ID) {
+        window.checkAdminStatus = () => {
+            if (window.operatorId === ADMIN_ID) {
                 document.getElementById('admin-toggle-btn').classList.remove('hidden');
                 document.getElementById('display-operator').classList.add('text-amber-600');
             }
         };
 
-        window.saveOperatorName = () => { const id = document.getElementById('operator-name-input').value.trim(); if (!id) return; localStorage.setItem('ims_op_v13_4', id); location.reload(); };
-        window.logout = () => { if(confirm("登出？")) { localStorage.removeItem('ims_op_v13_4'); location.reload(); } };
+        window.showToast = (msg, success = true) => {
+            const t = document.getElementById('toast');
+            if(!t) return;
+            t.className = `fixed bottom-10 left-1/2 -translate-x-1/2 text-white px-6 py-3 rounded-full text-[12px] font-black opacity-0 transition-all z-[9000] shadow-2xl flex items-center gap-2 ${success ? 'bg-emerald-600' : 'bg-red-600'}`;
+            t.innerHTML = `${success ? '✅' : '❌'} <span>${msg}</span>`;
+            t.style.opacity = "1";
+            setTimeout(() => t.style.opacity = "0", 3000);
+        };
 
-        // 2. 雲端資料載入與監聽
         window.loadCloudData = () => {
-            onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'categories', 'all'), (s) => { categories = s.exists() ? s.data().list : ['培林', '氣壓缸']; window.renderCats(); });
-            onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'groups', 'all'), (s) => { machineGroups = s.exists() ? s.data().list : ['CSCR', 'CST', 'CV']; window.renderGroups(); });
+            onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'categories', 'all'), (s) => { 
+                window.categories = s.exists() ? s.data().list : ['培林', '氣壓缸']; 
+                window.renderCats(); 
+            });
+            onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'groups', 'all'), (s) => { 
+                window.machineGroups = s.exists() ? s.data().list : ['CSCR', 'CST', 'CV']; 
+                window.renderGroups(); 
+            });
             onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'stock'), (s) => { 
-                cachedStock = s.docs.map(d => d.data()); 
+                window.cachedStock = s.docs.map(d => d.data()); 
                 window.refreshInitialFilters(); 
                 window.applyFilters(); 
             });
             onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'history'), (s) => { 
-                cachedHistory = s.docs.map(d => ({ ...d.data(), id: d.id })).sort((a,b) => (b.timestamp?.toMillis() || 0) - (a.timestamp?.toMillis() || 0)); 
-                window.renderHistory(cachedHistory); 
+                window.cachedHistory = s.docs.map(d => ({ ...d.data(), id: d.id })).sort((a,b) => (b.timestamp?.toMillis() || 0) - (a.timestamp?.toMillis() || 0)); 
+                window.renderHistory(window.cachedHistory); 
             });
         };
 
-        // 3. 基礎 UI 渲染與篩選
         window.renderCats = () => {
             const catIn = document.getElementById('input-category');
-            if (catIn) catIn.innerHTML = '<option value="" disabled selected>類別選單</option>' + categories.map(c => `<option value="${c}">${c}</option>`).join('');
+            if (catIn) catIn.innerHTML = '<option value="" disabled selected>類別選單</option>' + window.categories.map(c => `<option value="${c}">${c}</option>`).join('');
             const filterCat = document.getElementById('filter-category');
             if (filterCat) {
-                const cSet = new Set(cachedStock.map(i => i.category).filter(Boolean));
+                const cSet = new Set(window.cachedStock.map(i => i.category).filter(Boolean));
                 filterCat.innerHTML = '<option value="">所有類別</option>' + Array.from(cSet).sort().map(c => `<option value="${c}">${c}</option>`).join('');
             }
             const catMgr = document.getElementById('category-list-manager');
-            if (catMgr) catMgr.innerHTML = categories.map(c => `<div class="flex justify-between items-center bg-slate-50 p-2 rounded-xl mb-1 text-left"><span class="text-xs font-bold font-mono">${c}</span>${adminModeActive ? `<button onclick="window.removeCategory('${c}')" class="text-red-500 font-bold text-[9px]">移除</button>` : ''}</div>`).join('');
+            if (catMgr) catMgr.innerHTML = window.categories.map(c => `<div class="flex justify-between items-center bg-slate-50 p-2 rounded-xl mb-1 text-left"><span class="text-xs font-bold font-mono">${c}</span>${window.adminModeActive ? `<button onclick="window.removeCategory('${c}')" class="text-red-500 font-bold text-[9px]">移除</button>` : ''}</div>`).join('');
         };
 
         window.renderGroups = () => {
             const groupIn = document.getElementById('input-group');
-            if (groupIn) groupIn.innerHTML = '<option value="" disabled selected>機群選單</option>' + machineGroups.map(g => `<option value="${g}">${g}</option>`).join('');
+            if (groupIn) groupIn.innerHTML = '<option value="" disabled selected>機群選單</option>' + window.machineGroups.map(g => `<option value="${g}">${g}</option>`).join('');
             const groupMgr = document.getElementById('group-list-manager');
-            if (groupMgr) groupMgr.innerHTML = machineGroups.map(g => `<div class="flex justify-between items-center bg-slate-50 p-2 rounded-xl mb-1 text-left"><span class="text-xs font-bold font-mono text-left">${g}</span>${adminModeActive ? `<button onclick="window.removeGroup('${g}')" class="text-red-500 font-bold text-[9px]">移除</button>` : ''}</div>`).join('');
+            if (groupMgr) groupMgr.innerHTML = window.machineGroups.map(g => `<div class="flex justify-between items-center bg-slate-50 p-2 rounded-xl mb-1 text-left"><span class="text-xs font-bold font-mono text-left">${g}</span>${window.adminModeActive ? `<button onclick="window.removeGroup('${g}')" class="text-red-500 font-bold text-[9px]">移除</button>` : ''}</div>`).join('');
         };
 
         window.updateUnitDropdown = () => {
-            const selG = document.getElementById('filter-group')?.value || ""; const uSet = new Set();
-            cachedStock.forEach(i => { const gL = (i.group || "").split(","); const uL = (i.unit || "").split(","); if (!selG) uL.forEach(u => uSet.add(u.trim())); else uL.forEach((u, idx) => { if (gL[idx]?.trim() === selG || gL[0]?.trim() === selG) uSet.add(u.trim()); }); });
-            const filterUnit = document.getElementById('filter-unit'); if(filterUnit) filterUnit.innerHTML = '<option value="">所有 Unit</option>' + Array.from(uSet).filter(Boolean).sort().map(u => `<option value="${u}">${u}</option>`).join('');
+            const selG = document.getElementById('filter-group')?.value || ""; 
+            const uSet = new Set();
+            window.cachedStock.forEach(i => { 
+                const gL = (i.group || "").split(",").map(s => s.trim()); 
+                const uL = (i.unit || "").split(",").map(s => s.trim()); 
+                if (!selG) uL.forEach(u => uSet.add(u)); 
+                else uL.forEach((u, idx) => { if ((gL[idx] || gL[0]) === selG) uSet.add(u); }); 
+            });
+            const filterUnit = document.getElementById('filter-unit'); 
+            if(filterUnit) filterUnit.innerHTML = '<option value="">所有 Unit</option>' + Array.from(uSet).filter(Boolean).sort().map(u => `<option value="${u}">${u}</option>`).join('');
         };
 
         window.refreshInitialFilters = () => {
-            const gS = new Set(); cachedStock.forEach(i => (i.group || "").split(",").forEach(s => gS.add(s.trim())));
-            const fG = document.getElementById('filter-group'); if (fG) fG.innerHTML = '<option value="">所有機群</option>' + Array.from(gS).filter(Boolean).sort().map(g => `<option value="${g}">${g}</option>`).join('');
-            window.renderCats(); window.updateUnitDropdown();
+            const gS = new Set(); 
+            window.cachedStock.forEach(i => (i.group || "").split(",").forEach(s => gS.add(s.trim())));
+            const fG = document.getElementById('filter-group'); 
+            if (fG) fG.innerHTML = '<option value="">所有機群</option>' + Array.from(gS).filter(Boolean).sort().map(g => `<option value="${g}">${g}</option>`).join('');
+            window.renderCats(); 
+            window.updateUnitDropdown();
         };
 
         window.applyFilters = () => {
             const gF = document.getElementById('filter-group')?.value || "";
             const uF = document.getElementById('filter-unit')?.value || "";
             const cF = document.getElementById('filter-category')?.value || "";
-            const search = document.querySelector('input[placeholder*="搜尋型號"]')?.value.trim().toLowerCase() || "";
-            let filtered = cachedStock;
+            const search = document.getElementById('filter-usage')?.value.trim().toLowerCase() || "";
+            let filtered = window.cachedStock || [];
             if (gF) filtered = filtered.filter(i => (i.group || "").includes(gF));
             if (uF) filtered = filtered.filter(i => (i.unit || "").includes(uF));
-            if (cF) filtered = filtered.filter(i => i.category === cF);
-            if (search) filtered = filtered.filter(i => (i.usage||'').toLowerCase().includes(search) || (i.sku||'').toLowerCase().includes(search) || (i.model||'').toLowerCase().includes(search));
+            if (cF) filtered = filtered.filter(i => (i.category || "") === cF);
+            if (search) filtered = filtered.filter(i => (i.usage||'').toLowerCase().includes(search) || (i.sku||'').toLowerCase().includes(search) || (i.model||'').toLowerCase().includes(search) || (i.category||'').toLowerCase().includes(search));
             window.renderStockList(filtered);
         };
 
-        window.onFilterGroupChange = () => { window.updateUnitDropdown(); window.applyFilters(); };
-        window.onFilterUnitChange = () => { window.applyFilters(); };
-        window.resetStockFilters = () => { document.getElementById('filter-group').selectedIndex = 0; document.getElementById('filter-unit').selectedIndex = 0; document.getElementById('filter-category').selectedIndex = 0; document.getElementById('filter-usage').value = ""; window.applyFilters(); };
-
         window.renderStockList = (data) => {
-            const list = document.getElementById('stock-list'); if (!list) return;
+            const list = document.getElementById('stock-list'); 
+            if (!list) return;
             if (!data.length) return list.innerHTML = '<div class="py-20 text-slate-300 text-xs text-center uppercase">無匹配資料</div>';
             list.innerHTML = data.map(i => {
                 const gL = (i.group || "").split(",").map(s => s.trim()).filter(Boolean);
@@ -319,71 +344,117 @@
                         <div class="font-black text-slate-800 text-sm font-mono leading-none">${i.sku}</div>
                         <div class="text-[11px] text-slate-500 mt-2 font-black"><span class="text-slate-400 font-bold mr-1 uppercase">${i.category||'其他'}</span> | 位：${i.usage||'未註明'}</div>
                     </div>
-                    <div class="text-xl font-black ${i.qty < 0 ? 'text-red-500' : 'text-slate-800'} font-mono text-center">${i.qty}</div>
+                    <div class="flex items-center gap-3">
+                        <div class="text-xl font-black ${i.qty < 0 ? 'text-red-500' : 'text-slate-800'} font-mono text-center">${i.qty}</div>
+                        ${window.adminModeActive ? `<button onclick="event.stopPropagation(); window.deleteStockItem('${i.sku}')" class="p-2 bg-red-50 text-red-500 rounded-lg active:scale-90"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>` : ''}
+                    </div>
                 </div>`;
             }).join('');
         };
 
         window.renderHistory = (logs) => {
-            const list = document.getElementById('history-list'); if (!list) return;
-            if (!logs.length) return list.innerHTML = '<div class="py-20 text-slate-300 text-xs text-center uppercase">無紀錄</div>';
+            const list = document.getElementById('history-list'); 
+            if (!list) return;
+            if (!logs || !logs.length) return list.innerHTML = '<div class="py-20 text-slate-300 text-xs text-center uppercase">無紀錄</div>';
             list.innerHTML = logs.map(l => {
                 const tC = l.type === 'IN' ? 'text-blue-500' : (l.type === 'OUT' ? 'text-orange-500' : 'text-emerald-500');
-                let qD = `${l.type} ${l.change}`; if (l.type === 'COUNT' && l.diff !== undefined) { const dS = l.diff > 0 ? '+' : ''; qD = `盤點: ${l.after} (差: ${dS}${l.diff})`; }
-                return `<div class="bg-white p-4 rounded-2xl border shadow-sm text-[10px] space-y-1 relative text-left mb-2"><div class="flex justify-between items-start"><div class="font-black text-slate-800 font-mono text-sm">${l.sku}</div><div class="flex items-center gap-2"><div class="font-black ${tC} uppercase">${qD}</div>${adminModeActive ? `<button onclick="window.deleteHistoryItem('${l.id}', ${JSON.stringify(l).replace(/"/g, '&quot;')})" class="p-1.5 bg-red-50 text-red-500 rounded-lg active:scale-90"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>` : ''}</div></div><div class="text-slate-400">👤 ${l.op} • ${l.timestamp ? new Date(l.timestamp.toMillis()).toLocaleTimeString() : ''}</div><div class="text-slate-500 font-mono">${l.group||''}_${l.unit||''}</div></div>`;
+                let qD = `${l.type} ${l.change}`; 
+                if (l.type === 'COUNT' && l.diff !== undefined) { const dS = l.diff > 0 ? '+' : ''; qD = `盤點: ${l.after} (差: ${dS}${l.diff})`; }
+                return `<div class="bg-white p-4 rounded-2xl border shadow-sm text-[10px] space-y-1 relative text-left mb-2">
+                    <div class="flex justify-between items-start">
+                        <div class="font-black text-slate-800 font-mono text-sm">${l.sku}</div>
+                        <div class="flex items-center gap-2">
+                            <div class="font-black ${tC} uppercase">${qD}</div>
+                            ${window.adminModeActive ? `<button onclick="window.deleteHistoryItem('${l.id}', ${JSON.stringify(l).replace(/"/g, '&quot;')})" class="p-1.5 bg-red-50 text-red-500 rounded-lg active:scale-90"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>` : ''}
+                        </div>
+                    </div>
+                    <div class="text-slate-400">👤 ${l.op} • ${l.timestamp ? new Date(l.timestamp.toMillis()).toLocaleTimeString() : ''}</div>
+                    <div class="text-slate-500 font-mono">${l.group||''}_${l.unit||''}</div>
+                    ${l.comment ? `<div class="mt-2 bg-blue-50/50 text-blue-600 p-2 rounded-lg italic font-bold">備註: ${l.comment}</div>` : ''}
+                </div>`;
             }).join('');
         };
 
-        // 4. 操作互動與帶入
         window.switchTab = (t) => {
             ['action', 'stock', 'history'].forEach(x => {
-                const sec = document.getElementById(`section-${x}`); const btn = document.getElementById(`tab-${x}-btn`);
+                const sec = document.getElementById(`section-${x}`); 
+                const btn = document.getElementById(`tab-${x}-btn`);
                 if(sec) sec.classList.toggle('hidden', x !== t);
-                if(btn) { if(x===t){ btn.classList.add('tab-active'); btn.classList.remove('text-slate-400'); } else { btn.classList.remove('tab-active'); btn.classList.add('text-slate-400'); } }
+                if(btn) { 
+                    if(x===t){ btn.classList.add('tab-active'); btn.classList.remove('text-slate-400'); } 
+                    else { btn.classList.remove('tab-active'); btn.classList.add('text-slate-400'); } 
+                }
             });
-            if(t==='stock') window.applyFilters();
+            if(t === 'stock') window.applyFilters();
         };
 
         window.setMode = (m) => {
-            currentMode = m;
-            ['in', 'out', 'count'].forEach(x => { const btn = document.getElementById(`mode-${x}`); if(btn) btn.className = x === m.toLowerCase() ? 'flex-1 py-2 rounded-lg bg-blue-600 text-white font-bold text-xs shadow-md' : 'flex-1 py-2 rounded-lg text-slate-400 font-bold text-xs'; });
-            const sB = document.getElementById('btn-submit'); if(sB) sB.innerText = m === 'IN' ? '確認入庫' : (m === 'OUT' ? '確認出庫' : '確認盤點');
+            window.currentMode = m;
+            ['in', 'out', 'count'].forEach(x => {
+                const btn = document.getElementById(`mode-${x}`);
+                if(btn) btn.className = x === m.toLowerCase() ? 'flex-1 py-2 rounded-lg bg-blue-600 text-white font-bold text-xs shadow-md' : 'flex-1 py-2 rounded-lg text-slate-400 font-bold text-xs';
+            });
+            const sB = document.getElementById('btn-submit');
+            if(sB) sB.innerText = m === 'IN' ? '確認入庫' : (m === 'OUT' ? '確認出庫' : '確認盤點');
         };
 
-        window.stepQty = (v) => { const i = document.getElementById('input-qty'); i.value = Math.max(0, (parseInt(i.value) || 0) + v); };
-        window.clearSkuInput = () => { document.getElementById('input-sku').value = ""; document.getElementById('sku-suggestions').classList.add('hidden'); document.getElementById('btn-clear-sku').classList.remove('show'); };
-        window.resetActionFields = () => { window.clearSkuInput(); document.getElementById('input-model').value = ""; document.getElementById('input-qty').value = "1"; document.getElementById('input-unit').value = ""; document.getElementById('input-usage').value = ""; document.getElementById('input-group').selectedIndex = 0; document.getElementById('input-category').selectedIndex = 0; };
-
         window.onSkuTyping = (v) => {
-            const btnClear = document.getElementById('btn-clear-sku'); if (btnClear) btnClear.classList.toggle('show', v.length > 0);
-            const c = document.getElementById('sku-suggestions'); if (!v || !cachedStock.length) { c.classList.add('hidden'); return; }
-            const m = cachedStock.filter(i => (i.sku||"").toLowerCase().includes(v.toLowerCase())).slice(0, 8);
-            if (m.length > 0) { c.innerHTML = m.map(i => `<div class="suggestion-item text-left" onclick="window.autoFillStock('${i.sku}')"><div class="font-bold text-xs font-mono">${i.sku}</div><div class="text-[8px] text-slate-400 mt-0.5">型號：${i.model||'無'} | 數量：${i.qty}</div></div>`).join(''); c.classList.remove('hidden'); } else c.classList.add('hidden');
+            const btnClear = document.getElementById('btn-clear-sku');
+            if (btnClear) btnClear.classList.toggle('show', v.length > 0); 
+            const c = document.getElementById('sku-suggestions'); 
+            if (!v || !window.cachedStock.length) { c.classList.add('hidden'); return; }
+            const m = window.cachedStock.filter(i => (i.sku||"").toLowerCase().includes(v.toLowerCase())).slice(0, 8);
+            if (m.length > 0) { 
+                c.innerHTML = m.map(i => `<div class="suggestion-item text-left" onclick="window.autoFillStock('${i.sku}')"><div class="font-bold text-xs font-mono">${i.sku}</div><div class="text-[8px] text-slate-400 mt-0.5">型號：${i.model||'無'} | 數量：${i.qty}</div></div>`).join(''); 
+                c.classList.remove('hidden'); 
+            } else c.classList.add('hidden');
+        };
+
+        window.clearSkuInput = () => { 
+            const input = document.getElementById('input-sku');
+            if(input) { input.value = ""; input.focus(); }
+            document.getElementById('sku-suggestions')?.classList.add('hidden'); 
+            document.getElementById('btn-clear-sku')?.classList.remove('show');
+        };
+
+        window.resetActionFields = () => { 
+            window.clearSkuInput();
+            document.getElementById('input-model').value = ""; 
+            document.getElementById('input-qty').value = "1";
+            document.getElementById('input-unit').value = "";
+            document.getElementById('input-usage').value = "";
+            document.getElementById('input-group').selectedIndex = 0;
+            document.getElementById('input-category').selectedIndex = 0;
         };
 
         window.autoFillStock = (sku) => {
-            document.getElementById('sku-suggestions')?.classList.add('hidden');
-            const it = cachedStock.find(i => i.sku === sku); if (!it) return;
+            document.getElementById('sku-suggestions')?.classList.add('hidden'); 
+            const it = window.cachedStock.find(i => i.sku === sku); if (!it) return;
             const gL = (it.group || "").split(",").map(s => s.trim()).filter(Boolean);
             const uL = (it.unit || "").split(",").map(s => s.trim()).filter(Boolean);
             const usL = (it.usage || "").split(",").map(s => s.trim());
             const count = Math.max(gL.length, uL.length);
+            
             if (count > 1) {
-                activePickerSku = sku; const list = document.getElementById('context-options-list'); list.innerHTML = "";
+                window.activePickerSku = sku; 
+                const list = document.getElementById('context-options-list'); list.innerHTML = "";
                 document.getElementById('context-picker-modal').classList.remove('hidden');
                 for (let i = 0; i < count; i++) {
-                    const btn = document.createElement('button'); btn.className = "w-full p-4 border rounded-2xl text-left mb-2 bg-slate-50 active:scale-95";
+                    const btn = document.createElement('button'); 
+                    btn.className = "w-full p-4 border rounded-2xl text-left mb-2 bg-slate-50 active:scale-95";
                     btn.innerHTML = `<span class="font-black text-blue-600 font-mono text-xs">${gL[i]||gL[0]}_${uL[i]||uL[0]}</span><div class="text-slate-800 text-xs mt-1">位：${usL[i]||usL[0]||'未註明'}</div>`;
                     btn.onclick = () => { window.applyContext(sku, gL[i]||gL[0], uL[i]||uL[0], it.category, usL[i]||usL[0]||"", it.model || ""); window.closeContextPicker(); };
                     list.appendChild(btn);
                 }
-            } else window.applyContext(sku, gL[0], uL[0], it.category, usL[0]||"", it.model || "");
+            } else {
+                window.applyContext(sku, gL[0], uL[0], it.category, usL[0]||"", it.model || ""); 
+            }
         };
 
         window.applyContext = (sku, g, u, cat, usage, model) => {
             document.getElementById('input-sku').value = sku;
             document.getElementById('btn-clear-sku')?.classList.add('show');
-            document.getElementById('input-group').value = machineGroups.includes(g) ? g : "";
+            document.getElementById('input-group').value = window.machineGroups.includes(g) ? g : "";
             document.getElementById('input-unit').value = u || "";
             document.getElementById('input-category').value = cat || "";
             document.getElementById('input-usage').value = usage || "";
@@ -391,56 +462,191 @@
             window.switchTab('action');
         };
 
-        // 5. 提交與修改邏輯
+        window.resetStockFilters = () => { 
+            const fG = document.getElementById('filter-group'); if(fG) fG.selectedIndex = 0;
+            const fU = document.getElementById('filter-unit'); if(fU) fU.selectedIndex = 0;
+            const fC = document.getElementById('filter-category'); if(fC) fC.selectedIndex = 0;
+            const fS = document.getElementById('filter-usage'); if(fS) fS.value = "";
+            window.applyFilters(); 
+        };
+
+        window.onFilterGroupChange = () => { window.updateUnitDropdown(); window.applyFilters(); };
+        window.onFilterUnitChange = () => { window.applyFilters(); };
+
         window.submitTransaction = () => {
-            const sku = document.getElementById('input-sku').value.trim(); const group = document.getElementById('input-group').value; const unit = document.getElementById('input-unit').value.trim(); const cat = document.getElementById('input-category').value;
-            if (!sku || !group || !unit || !cat) return window.showToast("⚠️ 請填寫完整", false);
-            pendingTransaction = { sku, group, unit, cat, usage: document.getElementById('input-usage').value.trim(), qty: parseInt(document.getElementById('input-qty').value)||0, model: document.getElementById('input-model').value.trim() };
-            document.getElementById('transaction-comment').value = ""; document.getElementById('comment-modal').classList.remove('hidden');
+            const sku = document.getElementById('input-sku').value.trim();
+            const group = document.getElementById('input-group').value;
+            const unit = document.getElementById('input-unit').value.trim();
+            const cat = document.getElementById('input-category').value;
+            const usage = document.getElementById('input-usage').value.trim();
+            const model = document.getElementById('input-model').value.trim();
+            const qty = parseInt(document.getElementById('input-qty').value) || 0;
+
+            if (!sku || !group || !unit || !cat) return window.showToast("⚠️ 欄位未填齊", false);
+            
+            const existing = window.cachedStock.find(i => i.sku === sku);
+            if (existing) {
+                const gL = (existing.group || "").split(",").map(s => s.trim());
+                const uL = (existing.unit || "").split(",").map(s => s.trim());
+                const usL = (existing.usage || "").split(",").map(s => s.trim());
+                let match = false;
+                for(let i=0; i<Math.max(gL.length, uL.length, usL.length); i++) { 
+                    if(gL[i] === group && uL[i] === unit && (usL[i]||"") === usage) match = true; 
+                }
+                if (!match || existing.category !== cat || (existing.model||"") !== model) {
+                    window.pendingTransaction = { sku, group, unit, cat, usage, qty, model };
+                    window.showConfirmModal("環境衝突", `與雲端設定不符，是否設為共用？`, [
+                        { text: "設為共用", color: "bg-blue-600", action: () => { window.closeConfirmModal(); window.openCommentModal('MERGE'); } },
+                        { text: "強制覆蓋", color: "bg-amber-500", action: () => { window.closeConfirmModal(); window.openCommentModal('OVERWRITE'); } },
+                        { text: "取消", color: "bg-slate-100", textColor: "text-slate-500", action: () => window.closeConfirmModal() }
+                    ]); return;
+                }
+            }
+            window.pendingTransaction = { sku, group, unit, cat, usage, qty, model, conflictAction: null };
+            document.getElementById('transaction-comment').value = "";
+            document.getElementById('comment-modal').classList.remove('hidden');
+        };
+
+        window.openCommentModal = (action) => {
+            if(window.pendingTransaction) window.pendingTransaction.conflictAction = action;
+            document.getElementById('transaction-comment').value = "";
+            document.getElementById('comment-modal').classList.remove('hidden');
         };
 
         window.confirmTransactionWithComment = async () => {
-            const comment = document.getElementById('transaction-comment').value.trim(); window.closeCommentModal();
-            const { sku, group, unit, cat, usage, qty, model } = pendingTransaction;
-            const btn = document.getElementById('btn-submit'); if(btn) btn.disabled = true;
+            const comment = document.getElementById('transaction-comment').value.trim();
+            window.closeCommentModal();
+            let { sku, group, unit, cat, usage, qty, model, conflictAction } = window.pendingTransaction;
+            
+            if (conflictAction === 'MERGE') {
+                const ex = window.cachedStock.find(i => i.sku === sku);
+                const gS = new Set(ex.group.split(",").map(u => u.trim())); 
+                const uS = new Set(ex.unit.split(",").map(u => u.trim())); 
+                const usS = new Set((ex.usage || "").split(",").map(u => u.trim()));
+                gS.add(group); uS.add(unit); if(usage) usS.add(usage);
+                group = Array.from(gS).join(", "); unit = Array.from(uS).join(", "); usage = Array.from(usS).join(", ");
+            }
+
+            const btn = document.getElementById('btn-submit');
+            if(btn) btn.disabled = true;
             try {
-                const ref = doc(db, 'artifacts', appId, 'public', 'data', 'stock', sku); const snap = await getDoc(ref); const oldQty = snap.exists() ? (parseInt(snap.data().qty) || 0) : 0;
-                let newQty = currentMode === 'IN' ? oldQty + qty : (currentMode === 'OUT' ? oldQty - qty : qty);
-                let diff = currentMode === 'COUNT' ? newQty - oldQty : null;
-                await setDoc(ref, { sku, group, unit, qty: newQty, category: cat, usage, model, lastOp: operatorId, time: serverTimestamp() });
-                await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'history'), { sku, type: currentMode, change: qty, after: newQty, diff, op: operatorId, group, unit, timestamp: serverTimestamp(), comment });
-                window.showToast(`✅ 同步成功`, true); window.resetActionFields();
-            } catch (e) { window.showToast("失敗", false); } finally { if(btn) btn.disabled = false; window.setMode(currentMode); }
+                const ref = doc(db, 'artifacts', appId, 'public', 'data', 'stock', sku);
+                const snap = await getDoc(ref);
+                const oldQty = snap.exists() ? (parseInt(snap.data().qty) || 0) : 0;
+                let newQty = window.currentMode === 'IN' ? oldQty + qty : (window.currentMode === 'OUT' ? oldQty - qty : qty);
+                let diff = window.currentMode === 'COUNT' ? newQty - oldQty : null;
+                
+                await setDoc(ref, { sku, group, unit, qty: newQty, category: cat, usage, model, lastOp: window.operatorId, time: serverTimestamp() });
+                await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'history'), { sku, type: window.currentMode, change: qty, after: newQty, diff, op: window.operatorId, group, unit, timestamp: serverTimestamp(), comment });
+                
+                window.showToast(`✅ ${sku} 同步成功`, true); 
+                window.resetActionFields();
+            } catch (e) { 
+                window.showToast("❌ 提交失敗", false); 
+            } finally { 
+                if(btn) btn.disabled = false; 
+                window.setMode(window.currentMode); 
+            }
         };
 
-        // 6. 管理員與彈窗工具
-        window.toggleAdminMode = () => { adminModeActive = !adminModeActive; document.getElementById('top-nav').classList.toggle('admin-glow', adminModeActive); document.getElementById('admin-badge').classList.toggle('hidden', !adminModeActive); window.applyFilters(); window.renderHistory(cachedHistory); };
-        window.toggleSettingsManager = (s) => { document.getElementById('settings-modal').classList.toggle('hidden', !s); if(s) { document.getElementById('admin-cat-controls').classList.toggle('hidden', !adminModeActive); document.getElementById('admin-group-controls').classList.toggle('hidden', !adminModeActive); } };
+        // --- 管理員操作功能 ---
+        window.deleteHistoryItem = async (id, data) => {
+            if (!window.adminModeActive || !confirm("確定回退並刪除？")) return;
+            try {
+                await runTransaction(db, async (tx) => {
+                    const sRef = doc(db, 'artifacts', appId, 'public', 'data', 'stock', data.sku);
+                    const sSnap = await tx.get(sRef);
+                    if (!sSnap.exists()) throw "無庫存";
+                    const cur = parseInt(sSnap.data().qty) || 0;
+                    let rb = cur;
+                    if (data.type === 'IN') rb = cur - data.change;
+                    else if (data.type === 'OUT') rb = cur + data.change;
+                    else rb = cur - (data.diff || 0);
+                    tx.delete(doc(db, 'artifacts', appId, 'public', 'data', 'history', id));
+                    tx.update(sRef, { qty: rb, lastOp: `${window.operatorId}(Rb)` });
+                });
+                window.showToast("🗑️ 已回退", true);
+            } catch (e) { window.showToast("回退失敗", false); }
+        };
+
+        window.deleteStockItem = async (sku) => {
+            if(confirm(`徹底刪除料號 ${sku}？`)) { 
+                await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'stock', sku)); 
+                window.showToast(`🗑️ 已刪除`, true); 
+            }
+        };
+
+        window.executePartialDelete = async (sku, idx) => {
+            const item = window.cachedStock.find(i => i.sku === sku);
+            const gL = item.group.split(",").map(s => s.trim());
+            const uL = item.unit.split(",").map(s => s.trim());
+            const usL = (item.usage||"").split(",").map(s => s.trim());
+            gL.splice(idx, 1); uL.splice(idx, 1); if (usL.length > idx) usL.splice(idx, 1);
+            try {
+                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'stock', sku), { ...item, group: gL.join(", "), unit: uL.join(", "), usage: usL.join(", "), lastOp: window.operatorId });
+                window.showToast("已移除環境", true); window.closeContextPicker();
+            } catch (e) { window.showToast("失敗", false); }
+        };
+
+        window.executeFullDeleteFromPicker = () => {
+            if(confirm("徹底刪除整個料號？")) { 
+                window.deleteStockItem(window.activePickerSku); 
+                window.closeContextPicker(); 
+            }
+        };
+
+        window.addNewCategory = async () => {
+            const i = document.getElementById('new-category-name'); const v = i.value.trim(); if(!v) return;
+            try { await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'categories', 'all'), { list: [...new Set([...window.categories, v])] }); i.value = ""; window.showToast("✅ 已新增", true); } catch(e) {}
+        };
+        window.addNewGroup = async () => {
+            const i = document.getElementById('new-group-name'); const v = i.value.trim(); if(!v) return;
+            try { await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'groups', 'all'), { list: [...new Set([...window.machineGroups, v])] }); i.value = ""; window.showToast("✅ 已新增", true); } catch(e) {}
+        };
+        window.removeCategory = async (n) => { if(confirm(`移除類別 ${n}？`)) await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'categories', 'all'), { list: window.categories.filter(x => x !== n) }); };
+        window.removeGroup = async (n) => { if(confirm(`移除機群 ${n}？`)) await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'groups', 'all'), { list: window.machineGroups.filter(x => x !== n) }); };
+
+        window.processPastedText = async () => {
+            const input = document.getElementById('import-text-area'); const txt = input.value.trim(); if (!txt) return window.showToast("⚠️ 請貼入內容", false);
+            const rows = txt.split(/\r?\n/).filter(r => r.trim() !== ""); const batch = writeBatch(db); const map = new Map();
+            try {
+                let sT = (rows[0].includes("機群") || rows[0].includes("料號")) ? 1 : 0;
+                for (let i = sT; i < rows.length; i++) {
+                    const c = rows[i].split(",").map(s => s.trim().replace(/^"|"$/g, "")); if (c.length < 5) continue;
+                    const [g, u, cat, us, sku, qtyS, model] = c; if (!sku) continue;
+                    if (!map.has(sku)) map.set(sku, { groups: new Set([g]), units: new Set([u]), usages: new Set([us || ""]), category: cat, qty: parseInt(qtyS)||0, model: model||"" });
+                    else { const m = map.get(sku); m.groups.add(g); m.units.add(u); m.usages.add(us || ""); m.qty = parseInt(qtyS)||0; if(model) m.model = model; }
+                }
+                for (const [sku, inp] of map) {
+                    const cl = window.cachedStock.find(it => it.sku === sku); let fG, fU, fUs;
+                    if (cl) {
+                        const gS = new Set(cl.group.split(",").map(s => s.trim())); const uS = new Set(cl.unit.split(",").map(s => s.trim())); const usS = new Set((cl.usage || "").split(",").map(s => s.trim()));
+                        inp.groups.forEach(v => gS.add(v)); inp.units.forEach(v => uS.add(v)); inp.usages.forEach(v => usS.add(v));
+                        fG = Array.from(gS).filter(Boolean).join(", "); fU = Array.from(uS).filter(Boolean).join(", "); fUs = Array.from(usS).filter(Boolean).join(", ");
+                    } else { fG = Array.from(inp.groups).join(", "); fU = Array.from(inp.units).join(", "); fUs = Array.from(inp.usages).join(", "); }
+                    batch.set(doc(db, 'artifacts', appId, 'public', 'data', 'stock', sku), { sku, group: fG, unit: fU, category: inp.category||"其他", usage: fUs, qty: inp.qty, model: inp.model, lastOp: window.operatorId+"(匯入)", time: serverTimestamp() });
+                }
+                await batch.commit(); window.showToast("✅ 匯入完成", true); input.value = ""; window.closeImportModal();
+            } catch (e) { window.showToast("❌ 錯誤", false); }
+        };
+
+        // --- 彈窗控制等其餘功能 ---
         window.closeCommentModal = () => document.getElementById('comment-modal').classList.add('hidden');
         window.closeContextPicker = () => document.getElementById('context-picker-modal').classList.add('hidden');
-        window.openImportModal = () => document.getElementById('import-modal').classList.remove('hidden');
         window.closeImportModal = () => document.getElementById('import-modal').classList.add('hidden');
+        window.openImportModal = () => document.getElementById('import-modal').classList.remove('hidden');
         window.showConfirmModal = (t, m, a) => { document.getElementById('confirm-title').innerText = t; document.getElementById('confirm-modal-msg').innerHTML = m; const c = document.getElementById('confirm-standard-actions'); c.innerHTML = ""; a.forEach(x => { const b = document.createElement('button'); b.className = `w-full py-3 rounded-xl font-bold text-xs ${x.color} ${x.textColor || 'text-white'}`; b.innerText = x.text; b.onclick = x.action; c.appendChild(b); }); document.getElementById('confirm-modal').classList.remove('hidden'); };
         window.closeConfirmModal = () => document.getElementById('confirm-modal').classList.add('hidden');
+        window.toggleSettingsManager = (s) => { document.getElementById('settings-modal').classList.toggle('hidden', !s); if(s) { document.getElementById('admin-cat-controls').classList.toggle('hidden', !window.adminModeActive); document.getElementById('admin-group-controls').classList.toggle('hidden', !window.adminModeActive); } };
+        window.toggleAdminMode = () => { window.adminModeActive = !window.adminModeActive; document.getElementById('top-nav').classList.toggle('admin-glow', window.adminModeActive); document.getElementById('admin-badge').classList.toggle('hidden', !window.adminModeActive); window.applyFilters(); window.renderHistory(window.cachedHistory); window.renderCats(); window.renderGroups(); };
+        window.saveOperatorName = () => { const id = document.getElementById('operator-name-input').value.trim(); if (!id) return; localStorage.setItem('ims_op_v13_4', id); location.reload(); };
+        window.logout = () => { if(confirm("登出？")) { localStorage.removeItem('ims_op_v13_4'); location.reload(); } };
+        window.stepQty = (v) => { const i = document.getElementById('input-qty'); i.value = Math.max(0, (parseInt(i.value) || 0) + v); };
+        window.exportAndShareStock = () => { const ws = XLSX.utils.json_to_sheet(window.cachedStock); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "庫存"); XLSX.writeFile(wb, "線邊倉報表.xlsx"); };
+        window.startScanner = async () => { document.getElementById('scanner-view').classList.remove('hidden'); window.html5QrCode = new Html5Qrcode("reader"); await window.html5QrCode.start({ facingMode: "environment" }, { fps: 25, qrbox: { width: 280, height: 120 } }, (t) => { document.getElementById('input-sku').value = t; window.stopScanner(); window.onSkuTyping(t); }); };
+        window.stopScanner = () => { if(window.html5QrCode) window.html5QrCode.stop().then(() => document.getElementById('scanner-view').classList.add('hidden')); };
 
-        // 7. 管理員刪除與新增功能
-        window.addNewCategory = async () => { const i = document.getElementById('new-category-name'); const v = i.value.trim(); if(!v) return; try { await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'categories', 'all'), { list: [...new Set([...categories, v])] }); i.value = ""; window.showToast("✅ 已新增", true); } catch(e) { window.showToast("❌ 失敗", false); } };
-        window.addNewGroup = async () => { const i = document.getElementById('new-group-name'); const v = i.value.trim(); if(!v) return; try { await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'groups', 'all'), { list: [...new Set([...machineGroups, v])] }); i.value = ""; window.showToast("✅ 已新增", true); } catch(e) { window.showToast("❌ 失敗", false); } };
-        window.removeCategory = async (n) => { if(confirm(`移除類別 ${n}？`)) await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'categories', 'all'), { list: categories.filter(x => x !== n) }); };
-        window.removeGroup = async (n) => { if(confirm(`移除機群 ${n}？`)) await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'groups', 'all'), { list: machineGroups.filter(x => x !== n) }); };
-        
-        window.deleteStockItem = async (sku) => { if(confirm(`徹底刪除料號 ${sku}？`)) { await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'stock', sku)); window.showToast(`🗑️ 已徹底刪除`, true); } };
-        window.executePartialDelete = async (sku, idx) => { const item = cachedStock.find(i => i.sku === sku); const gL = item.group.split(",").map(s => s.trim()); const uL = item.unit.split(",").map(s => s.trim()); const usL = (item.usage||"").split(",").map(s => s.trim()); gL.splice(idx, 1); uL.splice(idx, 1); if (usL.length > idx) usL.splice(idx, 1); try { await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'stock', sku), { ...item, group: gL.join(", "), unit: uL.join(", "), usage: usL.join(", "), lastOp: operatorId }); window.showToast("✅ 已移除環境", true); window.closeContextPicker(); } catch (e) { window.showToast("❌ 失敗", false); } };
-        window.executeFullDeleteFromPicker = () => { if(confirm("徹底刪除整個料號？")) { window.deleteStockItem(activePickerSku); window.closeContextPicker(); } };
-        window.deleteHistoryItem = async (id, data) => { if (!adminModeActive || !confirm("確定回退並刪除？")) return; try { await runTransaction(db, async (tx) => { const sRef = doc(db, 'artifacts', appId, 'public', 'data', 'stock', data.sku); const sSnap = await tx.get(sRef); if (!sSnap.exists()) throw "庫存不存在"; const cur = parseInt(sSnap.data().qty) || 0; let rb = cur; if (data.type === 'IN') rb = cur - data.change; else if (data.type === 'OUT') rb = cur + data.change; else rb = cur - (data.diff || 0); tx.delete(doc(db, 'artifacts', appId, 'public', 'data', 'history', id)); tx.update(sRef, { qty: rb, lastOp: `${operatorId}(Rb)` }); }); window.showToast("🗑️ 紀錄已回退", true); } catch (e) { window.showToast("❌ 失敗", false); } };
-        
-        window.processPastedText = async () => { const input = document.getElementById('import-text-area'); const txt = input.value.trim(); if (!txt) return window.showToast("⚠️ 請貼入內容", false); const rows = txt.split(/\r?\n/).filter(r => r.trim() !== ""); const batch = writeBatch(db); const map = new Map(); try { let sT = (rows[0].includes("機群") || rows[0].includes("料號")) ? 1 : 0; for (let i = sT; i < rows.length; i++) { const c = rows[i].split(",").map(s => s.trim().replace(/^"|"$/g, "")); if (c.length < 5) continue; const [g, u, cat, us, sku, qtyS, model] = c; if (!sku) continue; if (!map.has(sku)) map.set(sku, { groups: new Set([g]), units: new Set([u]), usages: new Set([us || ""]), category: cat, qty: parseInt(qtyS)||0, model: model||"" }); else { const m = map.get(sku); m.groups.add(g); m.units.add(u); m.usages.add(us || ""); m.qty = parseInt(qtyS)||0; if(model) m.model = model; } } for (const [sku, inp] of map) { const cl = cachedStock.find(it => it.sku === sku); let fG, fU, fUs; if (cl) { const gS = new Set(cl.group.split(",").map(s => s.trim())); const uS = new Set(cl.unit.split(",").map(s => s.trim())); const usS = new Set((cl.usage || "").split(",").map(s => s.trim())); inp.groups.forEach(v => gS.add(v)); inp.units.forEach(v => uS.add(v)); inp.usages.forEach(v => usS.add(v)); fG = Array.from(gS).filter(Boolean).join(", "); fU = Array.from(uS).filter(Boolean).join(", "); fUs = Array.from(usS).filter(Boolean).join(", "); } else { fG = Array.from(inp.groups).join(", "); fU = Array.from(inp.units).join(", "); fUs = Array.from(inp.usages).join(", "); } batch.set(doc(db, 'artifacts', appId, 'public', 'data', 'stock', sku), { sku, group: fG, unit: fU, category: inp.category||"其他", usage: fUs, qty: inp.qty, model: inp.model, lastOp: operatorId+"(匯入)", time: serverTimestamp() }); } await batch.commit(); window.showToast("✅ 匯入完成", true); input.value = ""; window.closeImportModal(); } catch (e) { window.showToast("❌ 解析出錯", false); } };
-
-        // 8. 掃描與匯出
-        window.startScanner = async () => { document.getElementById('scanner-view').classList.remove('hidden'); html5QrCode = new Html5Qrcode("reader"); await html5QrCode.start({ facingMode: "environment" }, { fps: 25, qrbox: { width: 280, height: 120 } }, (t) => { document.getElementById('input-sku').value = t; window.stopScanner(); window.onSkuTyping(t); }); };
-        window.stopScanner = () => { if(html5QrCode) html5QrCode.stop().then(() => document.getElementById('scanner-view').classList.add('hidden')); };
-        window.exportAndShareStock = () => { const ws = XLSX.utils.json_to_sheet(cachedStock); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "庫存"); XLSX.writeFile(wb, "線邊倉報表.xlsx"); };
-
+        // 系統啟動
         window.init();
     </script>
 </body>
