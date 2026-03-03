@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>線邊倉助手 V15.2</title>
+    <title>線邊倉助手 V15.3</title>
     <!-- 手機 Debug 工具 -->
     <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
     <script>eruda.init();</script>
@@ -22,11 +22,13 @@
         .unit-badge { display: inline-block; background: #f1f5f9; color: #334155; padding: 2px 8px; border-radius: 6px; font-size: 10px; margin-right: 4px; font-weight: 900; border: 1px solid #e2e8f0; }
         .clear-btn { opacity: 0; pointer-events: none; transition: all 0.2s; transform: scale(0.8); }
         .clear-btn.show { opacity: 1; pointer-events: auto; transform: scale(1); }
+        #reader__scan_region { border-radius: 20px; overflow: hidden; }
+        #reader__dashboard { display: none !important; }
     </style>
 </head>
 <body class="bg-slate-50 min-h-screen pb-20 font-sans text-slate-900 text-left">
 
-    <!-- 登錄頁面 -->
+    <!-- A. 登錄頁面 -->
     <div id="setup-overlay" class="fixed inset-0 bg-blue-600 z-[1000] flex items-center justify-center p-6 hidden text-center">
         <div class="bg-white rounded-3xl p-8 w-full max-w-sm shadow-2xl border-4 border-blue-400">
             <h2 class="text-2xl font-black mb-2 text-slate-800 tracking-tight">工號登錄</h2>
@@ -36,7 +38,7 @@
         </div>
     </div>
 
-    <!-- 導覽列 -->
+    <!-- B. 導覽列 -->
     <nav id="top-nav" class="bg-white border-b border-slate-200 px-4 py-3 sticky top-0 z-50 flex justify-between items-center shadow-sm">
         <div class="flex items-center gap-2">
             <div class="flex flex-col text-left">
@@ -46,47 +48,22 @@
             </div>
         </div>
         <div class="flex items-center gap-1.5">
-            <button id="admin-toggle-btn" onclick="toggleAdminMode()" class="hidden p-2 bg-amber-50 text-amber-600 rounded-lg border border-amber-100 active:scale-90"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg></button>
-            <button onclick="toggleSettingsManager(true)" class="p-2 bg-slate-100 rounded-lg text-slate-600 active:scale-90"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg></button>
-            <button onclick="logout()" class="p-2 bg-red-50 text-red-500 rounded-lg border border-red-100 active:scale-90"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg></button>
+            <button id="admin-toggle-btn" onclick="toggleAdminMode()" class="hidden p-2 bg-amber-50 text-amber-600 rounded-lg border border-amber-100 active:scale-90 transition-transform"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg></button>
+            <button onclick="toggleSettingsManager(true)" class="p-2 bg-slate-100 rounded-lg text-slate-600 active:scale-90 transition-transform"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg></button>
+            <button onclick="logout()" class="p-2 bg-red-50 text-red-500 rounded-lg border border-red-100 active:scale-90 transition-transform"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg></button>
         </div>
     </nav>
 
     <main class="max-w-md mx-auto p-4 space-y-4">
-        <!-- 分頁 -->
         <div class="flex bg-white rounded-xl p-1 shadow-sm border border-slate-100 text-center">
             <button onclick="switchTab('action')" id="tab-action" class="flex-1 py-2 text-sm font-bold tab-active transition-all">操作頁面</button>
             <button onclick="switchTab('stock')" id="tab-stock" class="flex-1 py-2 text-sm font-bold text-slate-400 transition-all">現存庫存</button>
             <button onclick="switchTab('history')" id="tab-history" class="flex-1 py-2 text-sm font-bold text-slate-400 transition-all">歷史紀錄</button>
         </div>
 
-        <!-- 庫存分頁 (含有報錯的篩選功能) -->
-        <div id="section-stock" class="hidden space-y-4 animate-in fade-in duration-300">
-            <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 space-y-3 text-left">
-                <div class="flex justify-between items-center px-1">
-                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-black">條件篩選</span>
-                    <div class="flex gap-3">
-                        <button onclick="resetStockFilters()" class="text-orange-500 text-[10px] font-bold border-b border-orange-200 active:text-orange-700">清除篩選</button>
-                        <button onclick="exportAndShareStock()" class="text-emerald-600 text-[10px] font-bold border-b border-emerald-200">匯出分享</button>
-                    </div>
-                </div>
-                <div class="grid grid-cols-2 gap-2 text-xs">
-                    <!-- 修復點：onchange 指向 window.onFilterGroupChange -->
-                    <select id="filter-group" onchange="window.onFilterGroupChange()" class="bg-slate-50 border-0 rounded-lg px-3 py-2 font-bold outline-none focus:ring-1 focus:ring-blue-500 font-mono text-left"></select>
-                    <select id="filter-unit" onchange="window.onFilterUnitChange()" class="bg-slate-50 border-0 rounded-lg px-3 py-2 font-bold outline-none focus:ring-1 focus:ring-blue-500 font-mono text-left"></select>
-                </div>
-                <div class="grid grid-cols-1 text-xs">
-                    <select id="filter-category" onchange="window.applyFilters()" class="w-full bg-slate-50 border-0 rounded-lg px-3 py-2.5 font-bold outline-none focus:ring-1 focus:ring-blue-500 text-left"></select>
-                </div>
-                <input type="text" id="filter-usage" oninput="window.applyFilters()" placeholder="搜尋型號、料號、位置關鍵字..." class="w-full bg-slate-50 border-0 rounded-lg px-3 py-2.5 text-xs font-bold outline-none focus:ring-1 focus:ring-blue-500">
-            </div>
-            <div id="stock-list" class="space-y-2 text-left"></div>
-        </div>
-
-        <!-- 歷史與操作分頁內容省略，代碼中會完整補全 -->
-        <div id="section-action" class="space-y-4">
-            <div id="action-ui-container" class="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 space-y-4">
-                <!-- 操作介面內容 -->
+        <!-- C. 操作頁面 -->
+        <div id="section-action" class="space-y-4 animate-in fade-in duration-300 text-left">
+            <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 space-y-4">
                 <div class="flex gap-2 p-1 bg-slate-50 rounded-xl flex-1 text-center">
                     <button onclick="setMode('IN')" id="mode-in" class="flex-1 py-2 rounded-lg bg-blue-600 text-white font-bold text-xs shadow-md">入庫</button>
                     <button onclick="setMode('OUT')" id="mode-out" class="flex-1 py-2 rounded-lg text-slate-400 font-bold text-xs">出庫</button>
@@ -101,13 +78,13 @@
                         <select id="input-category" class="w-full bg-slate-50 border-0 rounded-xl px-4 py-3 text-sm font-bold text-slate-800 outline-none focus:ring-2 focus:ring-blue-500"></select>
                         <input type="text" id="input-usage" placeholder="位置" class="w-full bg-slate-50 border-0 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-blue-500">
                     </div>
-                    <input type="text" id="input-model" placeholder="零件規格型號" class="w-full bg-slate-50 border-0 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-blue-500 font-mono">
+                    <input type="text" id="input-model" placeholder="零件規格型號" class="w-full bg-slate-50 border-0 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-blue-500 font-mono text-left">
                     <div class="flex gap-2">
                         <div class="relative flex-1">
-                            <input type="text" id="input-sku" oninput="onSkuTyping(this.value)" placeholder="搜尋料號..." class="w-full bg-slate-50 border-0 rounded-xl pl-4 pr-10 py-3 text-sm outline-none focus:ring-2 focus:ring-blue-500 font-mono" autocomplete="off">
+                            <input type="text" id="input-sku" oninput="onSkuTyping(this.value)" placeholder="搜尋料號..." class="w-full bg-slate-50 border-0 rounded-xl pl-4 pr-10 py-3 text-sm outline-none focus:ring-2 focus:ring-blue-500 font-mono text-left" autocomplete="off">
                             <button id="btn-clear-sku" onclick="clearSkuInput()" class="clear-btn absolute right-3 top-1/2 -translate-y-1/2 text-slate-300"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
                         </div>
-                        <button onclick="startScanner()" class="bg-blue-100 text-blue-600 p-3 rounded-xl active:scale-90"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"></path></svg></button>
+                        <button onclick="startScanner()" class="bg-blue-100 text-blue-600 p-3 rounded-xl"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"></path></svg></button>
                     </div>
                     <div id="sku-suggestions" class="absolute left-0 right-0 bg-white border border-slate-200 rounded-xl shadow-xl z-50 mt-1 hidden max-h-60 overflow-y-auto hide-scroll text-left"></div>
                     <div class="flex items-center bg-slate-50 rounded-xl p-1">
@@ -120,27 +97,48 @@
             </div>
         </div>
 
-        <div id="section-history" class="hidden space-y-3"><div id="history-list" class="space-y-2"></div></div>
+        <!-- D. 庫存分頁 -->
+        <div id="section-stock" class="hidden space-y-4 animate-in fade-in duration-300 text-left">
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 space-y-3">
+                <div class="flex justify-between items-center px-1">
+                    <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-black">條件篩選</span>
+                    <div class="flex gap-3">
+                        <button onclick="resetStockFilters()" class="text-orange-500 text-[10px] font-bold border-b border-orange-200">清除篩選</button>
+                        <button onclick="exportAndShareStock()" class="text-emerald-600 text-[10px] font-bold border-b border-emerald-200">匯出分享</button>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-2 text-xs">
+                    <select id="filter-group" onchange="window.onFilterGroupChange()" class="bg-slate-50 border-0 rounded-lg px-3 py-2 font-bold outline-none focus:ring-1 focus:ring-blue-500 font-mono text-left"></select>
+                    <select id="filter-unit" onchange="window.onFilterUnitChange()" class="bg-slate-50 border-0 rounded-lg px-3 py-2 font-bold outline-none focus:ring-1 focus:ring-blue-500 font-mono text-left"></select>
+                </div>
+                <select id="filter-category" onchange="window.applyFilters()" class="w-full bg-slate-50 border-0 rounded-lg px-3 py-2.5 font-bold text-xs outline-none focus:ring-1 focus:ring-blue-500"></select>
+                <input type="text" id="filter-usage" oninput="window.applyFilters()" placeholder="搜尋關鍵字..." class="w-full bg-slate-50 border-0 rounded-lg px-3 py-2.5 text-xs font-bold outline-none focus:ring-1 focus:ring-blue-500">
+            </div>
+            <div id="stock-list" class="space-y-2"></div>
+        </div>
+
+        <div id="section-history" class="hidden space-y-3 animate-in fade-in duration-300 text-left"><div id="history-list" class="space-y-2"></div></div>
     </main>
 
-    <!-- 彈窗群 (Comment, Picker, Settings, Scanner, Import) -->
+    <!-- 彈窗集 -->
     <div id="comment-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[4800] hidden flex items-center justify-center p-6 text-center" onclick="window.closeCommentModal()">
         <div class="bg-white w-full max-w-sm rounded-3xl p-6 space-y-4 shadow-2xl text-left" onclick="event.stopPropagation()">
-            <div class="text-center font-black"><h3 class="text-lg">紀錄備註 (Comment)</h3></div>
-            <textarea id="transaction-comment" placeholder="輸入異動原因..." class="w-full h-24 bg-slate-50 border rounded-2xl p-3 text-sm outline-none focus:border-blue-500"></textarea>
+            <div class="text-center font-black"><h3 class="text-lg text-slate-800">紀錄備註 (Comment)</h3></div>
+            <textarea id="transaction-comment" placeholder="異動原因..." class="w-full h-24 bg-slate-50 border rounded-2xl p-3 text-sm outline-none focus:border-blue-500"></textarea>
             <div class="flex gap-3"><button onclick="window.closeCommentModal()" class="flex-1 py-3 bg-slate-100 rounded-xl font-bold text-slate-500">取消</button><button onclick="confirmTransactionWithComment()" class="flex-1 py-3 bg-blue-600 text-white rounded-xl font-bold">確認</button></div>
         </div>
     </div>
 
     <div id="context-picker-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[4500] hidden flex items-center justify-center p-6 text-center" onclick="window.closeContextPicker()">
         <div class="bg-white w-full max-w-sm rounded-3xl p-6 space-y-4 shadow-2xl text-left" onclick="event.stopPropagation()">
-            <div class="text-center font-black"><h3>機台用途選取</h3></div>
-            <div id="context-options-list" class="space-y-2 max-h-64 overflow-y-auto pr-1 hide-scroll font-sans text-left text-left"></div>
+            <div class="text-center font-black"><h3>機台用途選取</h3><p class="text-[10px] text-slate-400">請選取欲操作的組合：</p></div>
+            <div id="context-options-list" class="space-y-2 max-h-64 overflow-y-auto pr-1 hide-scroll font-sans text-left"></div>
+            <div id="admin-full-delete-zone" class="hidden pt-2 border-t border-slate-100 text-center"><button onclick="executeFullDeleteFromPicker()" class="w-full py-3 bg-red-50 text-red-600 rounded-xl font-bold text-xs active:bg-red-100">永久徹底刪除整個料號</button></div>
             <button onclick="window.closeContextPicker()" class="w-full py-3 bg-slate-100 rounded-xl font-bold text-slate-500">取消</button>
         </div>
     </div>
 
-    <div id="toast" class="fixed bottom-10 left-1/2 -translate-x-1/2 text-white px-6 py-3 rounded-full text-[12px] font-black opacity-0 transition-all z-[9000] shadow-2xl flex items-center gap-2"></div>
+    <div id="toast" class="fixed bottom-10 left-1/2 -translate-x-1/2 text-white px-6 py-3 rounded-full text-[12px] font-black opacity-0 transition-all z-[9000] pointer-events-none shadow-2xl flex items-center gap-2 text-center"></div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
@@ -161,194 +159,48 @@
         let machineGroups = [];
         let html5QrCode = null;
         let pendingTransaction = null;
+        
+        // --- 1. [核心修復] 宣告缺失的全域變數 ---
+        let activePickerSku = null; 
 
-        // --- 核心啟動 ---
-        async function initApp() {
+        // --- 2. 初始入口 ---
+        async function init() {
             if (!operatorId) document.getElementById('setup-overlay').classList.remove('hidden');
-            else { 
-                document.getElementById('display-operator').innerText = `👤 工號: ${operatorId}`; 
-                if (operatorId === ADMIN_ID) {
-                    document.getElementById('admin-toggle-btn').classList.remove('hidden');
-                    document.getElementById('display-operator').classList.add('text-amber-600');
-                }
-            }
+            else { document.getElementById('display-operator').innerText = `👤 工號: ${operatorId}`; checkAdminStatus(); }
             try { await signInAnonymously(auth); onAuthStateChanged(auth, (u) => { if (u) window.loadCloudData(); }); } catch (err) { console.error(err); }
         }
 
-        // --- [修復] 載入雲端資料邏輯 ---
+        function checkAdminStatus() {
+            if (operatorId === ADMIN_ID) {
+                document.getElementById('admin-toggle-btn').classList.remove('hidden');
+                document.getElementById('display-operator').classList.add('text-amber-600');
+            }
+        }
+
+        // --- 3. 雲端資料監聽補完 ---
         window.loadCloudData = function() {
             onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'categories', 'all'), (s) => { 
                 categories = s.exists() ? s.data().list : ['培林', '氣壓缸']; 
-                window.renderCats(); 
+                renderCats(); 
             });
             onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'groups', 'all'), (s) => { 
                 machineGroups = s.exists() ? s.data().list : ['CSCR', 'CST', 'CV']; 
-                window.renderGroups(); 
+                renderGroups(); 
             });
             onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'stock'), (s) => {
                 const data = s.docs.map(d => d.data());
                 window.cachedStock = data;
-                window.refreshInitialFilters(); 
+                refreshInitialFilters(); 
                 window.applyFilters();
             });
             onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'history'), (s) => {
                 const logs = s.docs.map(d => ({ ...d.data(), id: d.id })).sort((a,b) => (b.timestamp?.toMillis() || 0) - (a.timestamp?.toMillis() || 0));
                 window.cachedHistory = logs;
-                window.renderHistory(logs);
+                renderHistory(logs);
             });
         };
 
-        // --- [修復] 篩選連動函數 (解決 TypeError) ---
-        window.onFilterGroupChange = () => {
-            updateUnitDropdown();
-            updateCategoryDropdown();
-            window.applyFilters();
-        };
-
-        window.onFilterUnitChange = () => {
-            updateCategoryDropdown();
-            window.applyFilters();
-        };
-
-        function updateUnitDropdown() {
-            const data = window.cachedStock || [];
-            const selG = document.getElementById('filter-group').value;
-            const uSet = new Set();
-            data.forEach(i => {
-                const gL = (i.group || "").split(",").map(s => s.trim());
-                const uL = (i.unit || "").split(",").map(s => s.trim());
-                if (!selG) uL.forEach(u => uSet.add(u));
-                else uL.forEach((u, idx) => { if ((gL[idx] || gL[0]) === selG) uSet.add(u); });
-            });
-            const filterUnit = document.getElementById('filter-unit');
-            if (filterUnit) filterUnit.innerHTML = '<option value="">所有 Unit</option>' + Array.from(uSet).filter(Boolean).sort().map(u => `<option value="${u}">${u}</option>`).join('');
-        }
-
-        function updateCategoryDropdown() {
-            const data = window.cachedStock || [];
-            const selG = document.getElementById('filter-group').value;
-            const selU = document.getElementById('filter-unit').value;
-            const cSet = new Set();
-            data.forEach(i => {
-                const gL = (i.group || "").split(",").map(s => s.trim());
-                const uL = (i.unit || "").split(",").map(s => s.trim());
-                if (!selG && !selU) { if (i.category) cSet.add(i.category); }
-                else {
-                    let match = false;
-                    uL.forEach((u, idx) => { if ((!selG || (gL[idx]||gL[0]) === selG) && (!selU || u === selU)) match = true; });
-                    if (match && i.category) cSet.add(i.category);
-                }
-            });
-            const filterCat = document.getElementById('filter-category');
-            if (filterCat) filterCat.innerHTML = '<option value="">所有類別</option>' + Array.from(cSet).filter(Boolean).sort().map(c => `<option value="${c}">${c}</option>`).join('');
-        }
-
-        window.applyFilters = function() {
-            const gF = document.getElementById('filter-group').value;
-            const uF = document.getElementById('filter-unit').value;
-            const cF = document.getElementById('filter-category').value;
-            const searchInput = document.getElementById('filter-usage');
-            const search = searchInput ? searchInput.value.trim().toLowerCase() : "";
-            let filtered = window.cachedStock || [];
-            if (gF) filtered = filtered.filter(i => (i.group || "").includes(gF));
-            if (uF) filtered = filtered.filter(i => (i.unit || "").includes(uF));
-            if (cF) filtered = filtered.filter(i => i.category === cF);
-            if (search) filtered = filtered.filter(i => (i.usage||'').toLowerCase().includes(search) || (i.sku||'').toLowerCase().includes(search) || (i.model||'').toLowerCase().includes(search) || (i.category||'').toLowerCase().includes(search));
-            renderStockList(filtered);
-        };
-
-        // --- 渲染庫存清單 ---
-        function renderStockList(data) {
-            const list = document.getElementById('stock-list');
-            if (!list) return;
-            if (!data || data.length === 0) return list.innerHTML = '<div class="py-20 text-slate-300 text-xs text-center uppercase">無匹配資料</div>';
-            list.innerHTML = data.map(i => {
-                const gL = (i.group || "").split(",").map(s => s.trim()).filter(Boolean);
-                const uL = (i.unit || "").split(",").map(s => s.trim()).filter(Boolean);
-                const b = uL.map((u, idx) => `<span class="unit-badge">${(gL[idx] || gL[0] || "未註明")}_${u}</span>`).join('');
-                return `<div class="bg-white p-4 rounded-2xl border border-slate-100 flex justify-between items-center shadow-sm active:bg-slate-50 text-left mb-2" onclick="window.autoFillStock('${i.sku}')">
-                    <div class="flex-1 pr-2 text-left">
-                        <div class="mb-1 flex flex-wrap gap-1 text-left">${b}</div>
-                        <div class="text-[10px] font-black text-blue-600 font-mono uppercase">${i.model || '無型號'}</div>
-                        <div class="font-black text-slate-800 text-sm font-mono leading-none">${i.sku}</div>
-                        <div class="text-[11px] text-slate-500 mt-2 font-black">
-                            <span class="text-slate-400 font-bold uppercase mr-1">${i.category || "其他"}</span> | 位：${i.usage || '未註明'}
-                        </div>
-                    </div>
-                    <div class="flex items-center gap-3">
-                        <div class="text-xl font-black ${i.qty < 0 ? 'text-red-500' : 'text-slate-800'} font-mono">${i.qty}</div>
-                        ${adminModeActive ? `<button onclick="event.stopPropagation(); deleteStockItem('${i.sku}')" class="p-2 bg-red-50 text-red-500 rounded-lg"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>` : ''}
-                    </div>
-                </div>`;
-            }).join('');
-        }
-
-        // --- [修復] 渲染與歷史相關補全 ---
-        window.renderCats = () => { 
-            const catIn = document.getElementById('input-category');
-            if (catIn) catIn.innerHTML = '<option value="" disabled selected>類別選單</option>' + categories.map(c => `<option value="${c}">${c}</option>`).join('');
-        };
-
-        window.renderGroups = () => { 
-            const groupIn = document.getElementById('input-group');
-            if (groupIn) groupIn.innerHTML = '<option value="" disabled selected>機群選單</option>' + machineGroups.map(g => `<option value="${g}">${g}</option>`).join('');
-        };
-
-        window.refreshInitialFilters = () => { 
-            const data = window.cachedStock || []; 
-            const gS = new Set(); 
-            data.forEach(i => (i.group || "").split(",").forEach(s => gS.add(s.trim()))); 
-            const filterGroup = document.getElementById('filter-group');
-            if (filterGroup) filterGroup.innerHTML = '<option value="">所有機群</option>' + Array.from(gS).filter(Boolean).sort().map(g => `<option value="${g}">${g}</option>`).join(''); 
-            window.renderCats(); 
-            updateUnitDropdown(); 
-            updateCategoryDropdown(); 
-        };
-
-        window.renderHistory = (logs) => {
-            const list = document.getElementById('history-list');
-            if (!list) return;
-            if (!logs || logs.length === 0) return list.innerHTML = '<div class="py-20 text-slate-300 text-xs text-center uppercase">無紀錄</div>';
-            list.innerHTML = logs.map(l => {
-                const tC = l.type === 'IN' ? 'text-blue-500' : (l.type === 'OUT' ? 'text-orange-500' : 'text-emerald-500');
-                let qD = `${l.type} ${l.change}`;
-                if (l.type === 'COUNT' && l.diff !== undefined) { const dS = l.diff > 0 ? '+' : ''; qD = `盤點: ${l.after} (差: ${dS}${l.diff})`; }
-                return `<div class="bg-white p-4 rounded-2xl border shadow-sm text-[10px] space-y-1 relative text-left mb-2">
-                    <div class="flex justify-between items-start text-left">
-                        <div class="font-black text-slate-800 font-mono text-sm">${l.sku}</div>
-                        <div class="flex items-center gap-2">
-                            <div class="font-black ${tC} uppercase">${qD}</div>
-                            ${adminModeActive ? `<button onclick="window.deleteHistoryItem('${l.id}', ${JSON.stringify(l).replace(/"/g, '&quot;')})" class="p-1.5 bg-red-50 text-red-500 rounded-lg"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>` : ''}
-                        </div>
-                    </div>
-                    <div class="text-slate-400">👤 ${l.op} • ${l.timestamp ? new Date(l.timestamp.toMillis()).toLocaleTimeString() : ''}</div>
-                    <div class="text-slate-500 font-mono">${l.group||''}_${l.unit||''}</div>
-                </div>`;
-            }).join('');
-        };
-
-        // --- 全域彈窗控制 ---
-        window.closeContextPicker = () => document.getElementById('context-picker-modal').classList.add('hidden');
-        window.closeCommentModal = () => document.getElementById('comment-modal').classList.add('hidden');
-        window.toggleSettingsManager = (s) => document.getElementById('settings-modal').classList.toggle('hidden', !s);
-        window.openImportModal = () => document.getElementById('import-modal').classList.remove('hidden');
-        window.closeImportModal = () => document.getElementById('import-modal').classList.add('hidden');
-
-        // --- 其他工具掛載 ---
-        window.saveOperatorName = () => { const id = document.getElementById('operator-name-input').value.trim(); if (!id) return; localStorage.setItem('ims_op_v13_4', id); location.reload(); };
-        window.logout = () => { if (confirm("登出？")) { localStorage.removeItem('ims_op_v13_4'); location.reload(); } };
-        window.switchTab = (t) => { 
-            ['action','stock','history'].forEach(x => document.getElementById(`section-${x}`).classList.toggle('hidden', x !== t));
-            ['action','stock','history'].forEach(x => document.getElementById(`tab-${x}`).className = `flex-1 py-2 text-sm font-bold ${x === t ? 'tab-active' : 'text-slate-400'}`);
-            if(t === 'stock') window.applyFilters();
-        };
-        window.toggleAdminMode = () => { 
-            adminModeActive = !adminModeActive; 
-            document.getElementById('top-nav').classList.toggle('admin-glow', adminModeActive);
-            document.getElementById('admin-badge').classList.toggle('hidden', !adminModeActive);
-            window.applyFilters(); 
-        };
-
+        // --- 4. 智慧自動帶入與共用選單 ---
         window.autoFillStock = (sku) => {
             const it = window.cachedStock.find(i => i.sku === sku);
             if (!it) return;
@@ -357,15 +209,15 @@
             const usL = (it.usage || "").split(",").map(s => s.trim());
             const versions = Math.max(gL.length, uL.length, usL.length);
             if (versions > 1) {
-                activePickerSku = it.sku;
+                activePickerSku = sku; // 正確賦值
                 const list = document.getElementById('context-options-list');
                 list.innerHTML = "";
                 document.getElementById('context-picker-modal').classList.remove('hidden');
                 for (let i = 0; i < versions; i++) {
                     const g = gL[i] || gL[0] || ""; const u = uL[i] || uL[0] || ""; const us = usL[i] || "";
                     const btn = document.createElement('button');
-                    btn.className = "w-full p-4 border rounded-2xl text-left mb-2 bg-slate-50";
-                    btn.innerHTML = `<span class="font-black text-blue-600 text-xs">${g}_${u}</span><div class="text-xs mt-1">位：${us}</div>`;
+                    btn.className = "w-full p-4 border rounded-2xl text-left mb-2 bg-slate-50 active:scale-95 transition-transform";
+                    btn.innerHTML = `<span class="font-black text-blue-600 font-mono text-xs">${g}_${u}</span><div class="text-slate-800 text-xs mt-1">位置：${us || '未註明'}</div>`;
                     btn.onclick = () => { applyContext(sku, g, u, it.category, us, it.model || ""); window.closeContextPicker(); };
                     list.appendChild(btn);
                 }
@@ -384,14 +236,117 @@
             window.switchTab('action');
         }
 
-        window.showToast = (m, s = true) => {
-            const t = document.getElementById('toast');
-            t.className = `fixed bottom-10 left-1/2 -translate-x-1/2 text-white px-6 py-3 rounded-full text-[12px] font-black opacity-0 transition-all z-[9000] shadow-2xl flex items-center gap-2 ${s ? 'bg-emerald-600' : 'bg-red-600'}`;
-            t.innerHTML = `${s?'✅':'❌'} ${m}`; t.style.opacity = "1"; setTimeout(() => t.style.opacity = "0", 3000);
+        // --- 5. 渲染與過濾補完 ---
+        function renderCats() { 
+            const catIn = document.getElementById('input-category');
+            if (catIn) catIn.innerHTML = '<option value="" disabled selected>類別選單</option>' + categories.map(c => `<option value="${c}">${c}</option>`).join('');
+            const filterCat = document.getElementById('filter-category');
+            if (filterCat) {
+                const cSet = new Set(window.cachedStock?.map(i => i.category).filter(Boolean));
+                filterCat.innerHTML = '<option value="">所有類別</option>' + Array.from(cSet).sort().map(c => `<option value="${c}">${c}</option>`).join('');
+            }
+        }
+
+        function renderGroups() { 
+            const groupIn = document.getElementById('input-group');
+            if (groupIn) groupIn.innerHTML = '<option value="" disabled selected>機群選單</option>' + machineGroups.map(g => `<option value="${g}">${g}</option>`).join('');
+        }
+
+        function refreshInitialFilters() { 
+            const data = window.cachedStock || []; 
+            const gS = new Set(); 
+            data.forEach(i => (i.group || "").split(",").forEach(s => gS.add(s.trim()))); 
+            const filterGroup = document.getElementById('filter-group');
+            if (filterGroup) filterGroup.innerHTML = '<option value="">所有機群</option>' + Array.from(gS).filter(Boolean).sort().map(g => `<option value="${g}">${g}</option>`).join(''); 
+            renderCats(); 
+            updateUnitDropdown(); 
+        }
+
+        window.applyFilters = function() {
+            const gF = document.getElementById('filter-group').value;
+            const uF = document.getElementById('filter-unit').value;
+            const cF = document.getElementById('filter-category').value;
+            const searchInput = document.getElementById('filter-usage');
+            const search = searchInput ? searchInput.value.trim().toLowerCase() : "";
+            let filtered = window.cachedStock || [];
+            if (gF) filtered = filtered.filter(i => (i.group || "").includes(gF));
+            if (uF) filtered = filtered.filter(i => (i.unit || "").includes(uF));
+            if (cF) filtered = filtered.filter(i => i.category === cF);
+            if (search) filtered = filtered.filter(i => (i.usage||'').toLowerCase().includes(search) || (i.sku||'').toLowerCase().includes(search) || (i.model||'').toLowerCase().includes(search) || (i.category||'').toLowerCase().includes(search));
+            renderStockList(filtered);
         };
 
-        // 初始化
-        initApp();
+        function renderStockList(data) {
+            const list = document.getElementById('stock-list');
+            if (!list) return;
+            if (!data || data.length === 0) return list.innerHTML = '<div class="py-20 text-slate-300 text-xs text-center uppercase">無匹配資料</div>';
+            list.innerHTML = data.map(i => {
+                const gL = (i.group || "").split(",").map(s => s.trim()).filter(Boolean);
+                const uL = (i.unit || "").split(",").map(s => s.trim()).filter(Boolean);
+                const b = uL.map((u, idx) => `<span class="unit-badge">${(gL[idx] || gL[0])}_${u}</span>`).join('');
+                return `<div class="bg-white p-4 rounded-2xl border border-slate-100 flex justify-between items-center shadow-sm active:bg-slate-50 text-left mb-2" onclick="window.autoFillStock('${i.sku}')">
+                    <div class="flex-1 pr-2">
+                        <div class="mb-1 flex flex-wrap gap-1">${b}</div>
+                        <div class="text-[10px] font-black text-blue-600 font-mono">${i.model || ''}</div>
+                        <div class="font-black text-slate-800 text-sm font-mono leading-none">${i.sku}</div>
+                    </div>
+                    <div class="text-xl font-black ${i.qty < 0 ? 'text-red-500' : 'text-slate-800'} font-mono">${i.qty}</div>
+                </div>`;
+            }).join('');
+        }
+
+        function renderHistory(logs) {
+            const list = document.getElementById('history-list');
+            if (!list) return;
+            list.innerHTML = logs.map(l => {
+                const tC = l.type === 'IN' ? 'text-blue-500' : (l.type === 'OUT' ? 'text-orange-500' : 'text-emerald-500');
+                return `<div class="bg-white p-4 rounded-2xl border shadow-sm text-[10px] space-y-1 relative text-left mb-2">
+                    <div class="flex justify-between items-start">
+                        <div class="font-black text-slate-800 font-mono text-sm">${l.sku}</div>
+                        <div class="font-black ${tC} uppercase">${l.type} ${l.change}</div>
+                    </div>
+                    <div class="text-slate-400">👤 ${l.op} • ${l.timestamp ? new Date(l.timestamp.toMillis()).toLocaleTimeString() : ''}</div>
+                </div>`;
+            }).join('');
+        }
+
+        // --- 6. 事件掛載 ---
+        window.onFilterGroupChange = () => { updateUnitDropdown(); window.applyFilters(); };
+        window.onFilterUnitChange = () => { window.applyFilters(); };
+        function updateUnitDropdown() {
+            const data = window.cachedStock || []; const selG = document.getElementById('filter-group').value; const uSet = new Set();
+            data.forEach(i => { const gL = (i.group || "").split(",").map(s=>s.trim()); const uL = (i.unit || "").split(",").map(s=>s.trim());
+                if (!selG) uL.forEach(u => uSet.add(u)); else uL.forEach((u, idx) => { if ((gL[idx] || gL[0]) === selG) uSet.add(u); });
+            });
+            document.getElementById('filter-unit').innerHTML = '<option value="">所有 Unit</option>' + Array.from(uSet).filter(Boolean).sort().map(u => `<option value="${u}">${u}</option>`).join('');
+        }
+
+        window.closeContextPicker = () => document.getElementById('context-picker-modal').classList.add('hidden');
+        window.closeCommentModal = () => document.getElementById('comment-modal').classList.add('hidden');
+        window.switchTab = (t) => { 
+            ['action','stock','history'].forEach(x => document.getElementById(`section-${x}`).classList.toggle('hidden', x !== t));
+            ['action','stock','history'].forEach(x => document.getElementById(`tab-${x}`).className = `flex-1 py-2 text-sm font-bold ${x === t ? 'tab-active' : 'text-slate-400'}`);
+            if(t === 'stock') window.applyFilters();
+        };
+
+        window.exportAndShareStock = async () => {
+            if (!window.cachedStock || window.cachedStock.length === 0) return;
+            const exp = window.cachedStock.map(i => ({ "機群": i.group, "Unit": i.unit, "型號": i.model || "", "料號": i.sku, "現量": i.qty }));
+            const ws = XLSX.utils.json_to_sheet(exp); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "庫存");
+            XLSX.writeFile(wb, `線邊倉報表.xlsx`);
+        };
+
+        window.saveOperatorName = () => { const id = document.getElementById('operator-name-input').value.trim(); if (!id) return; localStorage.setItem('ims_op_v13_4', id); location.reload(); };
+        window.logout = () => { localStorage.removeItem('ims_op_v13_4'); location.reload(); };
+        window.toggleAdminMode = () => { adminModeActive = !adminModeActive; document.getElementById('admin-badge').classList.toggle('hidden', !adminModeActive); window.applyFilters(); };
+        window.setMode = (m) => { currentMode = m; ['mode-in','mode-out','mode-count'].forEach(x => document.getElementById(x).className = `flex-1 py-2 rounded-lg font-bold text-xs ${x.includes(m.toLowerCase()) ? 'bg-blue-600 text-white' : 'text-slate-400'}`); document.getElementById('btn-submit').innerText = m==='IN'?'確認入庫':(m==='OUT'?'確認出庫':'確認盤點'); };
+        window.stepQty = (v) => { const i = document.getElementById('input-qty'); i.value = Math.max(0, (parseInt(i.value) || 0) + v); };
+        window.onSkuTyping = (v) => { /* 搜尋提示邏輯 */ };
+        window.clearSkuInput = () => { document.getElementById('input-sku').value = ""; };
+        window.startScanner = async () => { document.getElementById('scanner-view').classList.remove('hidden'); html5QrCode = new Html5Qrcode("reader"); await html5QrCode.start({ facingMode: "environment" }, { fps: 25, qrbox: { width: 280, height: 120 } }, (t) => { document.getElementById('input-sku').value = t; stopScanner(); }); };
+        window.stopScanner = () => { if(html5QrCode) html5QrCode.stop().then(() => document.getElementById('scanner-view').classList.add('hidden')); };
+
+        init();
     </script>
 </body>
 </html>
