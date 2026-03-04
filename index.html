@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>線邊倉助手 V3.1.4</title>
+    <title>線邊倉助手 V3.1.5</title>
     <!-- 手機 Debug 工具 -->
     <script src="https://cdn.jsdelivr.net/npm/eruda"></script><script>eruda.init();</script>
     <script src="https://unpkg.com/html5-qrcode"></script>
@@ -39,7 +39,7 @@
         <div class="flex items-center gap-2">
             <div class="flex flex-col text-left">
                 <span id="admin-badge" class="hidden text-[8px] font-black bg-amber-500 text-white px-1.5 py-0.5 rounded-full w-fit mb-0.5 uppercase shadow-sm">管理模式</span>
-                <span class="text-[10px] font-black text-slate-400 uppercase tracking-tighter">線邊倉助手 V3.1.4</span>
+                <span class="text-[10px] font-black text-slate-400 uppercase tracking-tighter">線邊倉助手 V3.1.5</span>
                 <span id="display-operator" class="text-sm font-bold text-slate-700 font-mono tracking-tight leading-none text-left">載入中...</span>
             </div>
         </div>
@@ -172,7 +172,7 @@
         </div>
     </div>
 
-    <!-- 彈窗：共用環境選取 (編輯/刪除 雙用) -->
+    <!-- 彈窗：共用環境選取 -->
     <div id="context-picker-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[4500] hidden flex items-center justify-center p-6 text-center" onclick="window.closeContextPicker()">
         <div class="bg-white w-full max-w-sm rounded-3xl p-6 space-y-4 shadow-2xl text-left" onclick="event.stopPropagation()">
             <div class="text-center font-black"><h3 id="picker-title">選擇要操作的環境</h3><p id="picker-desc" class="text-[10px] text-slate-400 mt-1">此料號綁定於多個機台</p></div>
@@ -207,7 +207,6 @@
             <div class="space-y-3"><h3 class="text-sm font-black border-l-4 border-blue-500 pl-2">類別管理</h3><div id="admin-cat-controls" class="hidden flex gap-2"><input type="text" id="new-category-name" placeholder="名稱..." class="flex-1 bg-slate-50 rounded-xl px-3 py-2 text-xs outline-none"><button onclick="window.addNewCategory()" class="bg-blue-600 text-white px-4 rounded-xl font-bold">+</button></div><div id="category-list-manager" class="space-y-1.5 max-h-32 overflow-y-auto font-mono text-left"></div></div>
             <div class="space-y-3"><h3 class="text-sm font-black border-l-4 border-amber-500 pl-2">機群管理</h3><div id="admin-group-controls" class="hidden flex gap-2"><input type="text" id="new-group-name" placeholder="名稱..." class="flex-1 bg-slate-50 rounded-xl px-3 py-2 text-xs outline-none"><button onclick="window.addNewGroup()" class="bg-amber-500 text-white px-4 rounded-xl font-bold">+</button></div><div id="group-list-manager" class="space-y-1.5 max-h-32 overflow-y-auto font-mono text-left"></div></div>
             
-            <!-- 管理員專屬：名單控制 (權限隔離區塊) -->
             <div id="admin-section-container" class="hidden space-y-3">
                 <h3 class="text-sm font-black border-l-4 border-purple-500 pl-2">管理員名單</h3>
                 <div class="flex gap-2">
@@ -246,7 +245,7 @@
         window.adminModeActive = false;
         window.categories = [];
         window.machineGroups = [];
-        window.adminList = ['Admin']; // 預設管理員名單
+        window.adminList = ['Admin']; 
         window.html5QrCode = null;
         window.pendingTransaction = null;
         window.activePickerSku = null;
@@ -375,24 +374,94 @@
 
         window.stepQty = (v) => { const i = document.getElementById('input-qty'); i.value = Math.max(0, (parseInt(i.value) || 0) + v); };
 
-        window.updateUnitDropdown = () => { const selG = document.getElementById('filter-group')?.value || ""; const uSet = new Set(); window.cachedStock.forEach(i => { const gL = (i.group || "").split(","); const uL = (i.unit || "").split(","); if (!selG) uL.forEach(u => uSet.add(u.trim())); else uL.forEach((u, idx) => { if (gL[idx]?.trim() === selG || gL[0]?.trim() === selG) uSet.add(u.trim()); }); }); const filterUnit = document.getElementById('filter-unit'); if(filterUnit) filterUnit.innerHTML = '<option value="">所有 Unit</option>' + Array.from(uSet).filter(Boolean).sort().map(u => `<option value="${u}">${u}</option>`).join(''); };
+        // 核心更新：加入級聯更新「類別」選單的邏輯
+        window.updateUnitDropdown = () => { 
+            const selG = document.getElementById('filter-group')?.value || ""; 
+            const uSet = new Set(); 
+            window.cachedStock.forEach(i => { 
+                const gL = (i.group || "").split(","); 
+                const uL = (i.unit || "").split(","); 
+                if (!selG) uL.forEach(u => uSet.add(u.trim())); 
+                else uL.forEach((u, idx) => { if (gL[idx]?.trim() === selG || gL[0]?.trim() === selG) uSet.add(u.trim()); }); 
+            }); 
+            const filterUnit = document.getElementById('filter-unit'); 
+            if(filterUnit) {
+                const curVal = filterUnit.value;
+                filterUnit.innerHTML = '<option value="">所有 Unit</option>' + Array.from(uSet).filter(Boolean).sort().map(u => `<option value="${u}">${u}</option>`).join(''); 
+                if (Array.from(uSet).includes(curVal)) filterUnit.value = curVal;
+            }
+        };
+
+        window.updateCategoryDropdown = () => {
+            const selG = document.getElementById('filter-group')?.value || "";
+            const selU = document.getElementById('filter-unit')?.value || "";
+            const cSet = new Set();
+
+            window.cachedStock.forEach(i => {
+                let matchG = !selG || (i.group || "").includes(selG);
+                let matchU = !selU || (i.unit || "").includes(selU);
+                if (matchG && matchU && i.category) {
+                    cSet.add(i.category);
+                }
+            });
+
+            const filterCat = document.getElementById('filter-category');
+            if (filterCat) {
+                const curVal = filterCat.value;
+                filterCat.innerHTML = '<option value="">所有類別</option>' + Array.from(cSet).sort().map(c => `<option value="${c}">${c}</option>`).join('');
+                if (Array.from(cSet).includes(curVal)) filterCat.value = curVal;
+            }
+        };
+
         window.refreshInitialFilters = () => { 
-            const gS = new Set(); window.cachedStock.forEach(i => (i.group || "").split(",").forEach(s => gS.add(s.trim()))); 
-            const fG = document.getElementById('filter-group'); if (fG) fG.innerHTML = '<option value="">所有機群</option>' + Array.from(gS).filter(Boolean).sort().map(g => `<option value="${g}">${g}</option>`).join(''); 
-            const filterCat = document.getElementById('filter-category'); if (filterCat) { const cSet = new Set(window.cachedStock.map(i => i.category).filter(Boolean)); filterCat.innerHTML = '<option value="">所有類別</option>' + Array.from(cSet).sort().map(c => `<option value="${c}">${c}</option>`).join(''); }
-            window.renderOptions(); window.updateUnitDropdown(); 
+            const gS = new Set(); 
+            window.cachedStock.forEach(i => (i.group || "").split(",").forEach(s => gS.add(s.trim()))); 
+            const fG = document.getElementById('filter-group'); 
+            if (fG) {
+                const curVal = fG.value;
+                fG.innerHTML = '<option value="">所有機群</option>' + Array.from(gS).filter(Boolean).sort().map(g => `<option value="${g}">${g}</option>`).join(''); 
+                if (Array.from(gS).includes(curVal)) fG.value = curVal;
+            }
+            window.renderOptions(); 
+            window.updateUnitDropdown(); 
+            window.updateCategoryDropdown();
         };
 
         window.applyFilters = () => {
-            const gF = document.getElementById('filter-group')?.value || ""; const uF = document.getElementById('filter-unit')?.value || ""; const cF = document.getElementById('filter-category')?.value || ""; const search = document.getElementById('filter-usage')?.value.trim().toLowerCase() || "";
+            const gF = document.getElementById('filter-group')?.value || ""; 
+            const uF = document.getElementById('filter-unit')?.value || ""; 
+            const cF = document.getElementById('filter-category')?.value || ""; 
+            const search = document.getElementById('filter-usage')?.value.trim().toLowerCase() || "";
+            
             let filtered = window.cachedStock;
-            if (gF) filtered = filtered.filter(i => (i.group || "").includes(gF)); if (uF) filtered = filtered.filter(i => (i.unit || "").includes(uF)); if (cF) filtered = filtered.filter(i => i.category === cF); 
+            if (gF) filtered = filtered.filter(i => (i.group || "").includes(gF)); 
+            if (uF) filtered = filtered.filter(i => (i.unit || "").includes(uF)); 
+            if (cF) filtered = filtered.filter(i => i.category === cF); 
             if (search) filtered = filtered.filter(i => (i.usage||'').toLowerCase().includes(search) || (i.sku||'').toLowerCase().includes(search) || (i.model||'').toLowerCase().includes(search));
+            
             window.renderStockList(filtered);
         };
-        window.onFilterGroupChange = () => { window.updateUnitDropdown(); window.applyFilters(); };
-        window.onFilterUnitChange = () => { window.applyFilters(); };
-        window.resetStockFilters = () => { document.getElementById('filter-group').selectedIndex = 0; document.getElementById('filter-unit').selectedIndex = 0; document.getElementById('filter-category').selectedIndex = 0; document.getElementById('filter-usage').value = ""; window.applyFilters(); };
+
+        window.onFilterGroupChange = () => { 
+            window.updateUnitDropdown(); 
+            window.updateCategoryDropdown();
+            window.applyFilters(); 
+        };
+        
+        window.onFilterUnitChange = () => { 
+            window.updateCategoryDropdown();
+            window.applyFilters(); 
+        };
+        
+        window.resetStockFilters = () => { 
+            document.getElementById('filter-group').selectedIndex = 0; 
+            window.updateUnitDropdown();
+            document.getElementById('filter-unit').selectedIndex = 0; 
+            window.updateCategoryDropdown();
+            document.getElementById('filter-category').selectedIndex = 0; 
+            document.getElementById('filter-usage').value = ""; 
+            window.applyFilters(); 
+        };
 
         window.renderStockList = (data) => {
             const list = document.getElementById('stock-list'); if (!list) return;
@@ -494,14 +563,13 @@
             }
         };
 
-        // 核心修復：使用 applyHistoryFilters 確保連動正確
         window.toggleAdminMode = () => { 
             window.adminModeActive = !window.adminModeActive; 
             document.getElementById('top-nav').classList.toggle('admin-glow', window.adminModeActive); 
             document.getElementById('admin-badge').classList.toggle('hidden', !window.adminModeActive); 
-            window.applyFilters(); // 更新庫存列表
-            window.applyHistoryFilters(); // 更新歷史紀錄列表 (包含刪除按鈕)
-            window.renderOptions(); // 更新設定面板
+            window.applyFilters(); 
+            window.applyHistoryFilters(); 
+            window.renderOptions(); 
         };
 
         window.toggleSettingsManager = (s) => { 
