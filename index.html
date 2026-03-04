@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>線邊倉助手 V3.1.1</title>
+    <title>線邊倉助手 V3.1.2</title>
     <!-- 手機 Debug 工具 -->
     <script src="https://cdn.jsdelivr.net/npm/eruda"></script><script>eruda.init();</script>
     <script src="https://unpkg.com/html5-qrcode"></script>
@@ -25,7 +25,7 @@
 <body class="bg-slate-50 min-h-screen pb-20 font-sans text-slate-900 text-left">
 
     <!-- 登錄頁面 -->
-    <div id="setup-overlay" class="fixed inset-0 bg-blue-600 z-[1000] flex items-center justify-center p-6 hidden text-center">
+    <div id="setup-overlay" class="fixed ins3et-0 bg-blue-600 z-[1000] flex items-center justify-center p-6 hidden text-center">
         <div class="bg-white rounded-3xl p-8 w-full max-w-sm shadow-2xl border-4 border-blue-400">
             <h2 class="text-2xl font-black mb-2 text-slate-800 tracking-tight">工號登錄</h2>
             <p class="text-slate-500 text-sm mb-6 font-medium">請輸入您的8碼員工編號</p>
@@ -39,7 +39,7 @@
         <div class="flex items-center gap-2">
             <div class="flex flex-col text-left">
                 <span id="admin-badge" class="hidden text-[8px] font-black bg-amber-500 text-white px-1.5 py-0.5 rounded-full w-fit mb-0.5 uppercase shadow-sm">管理模式</span>
-                <span class="text-[10px] font-black text-slate-400 uppercase tracking-tighter">線邊倉助手 V3.1.1</span>
+                <span class="text-[10px] font-black text-slate-400 uppercase tracking-tighter">線邊倉助手 V3.1.2</span>
                 <span id="display-operator" class="text-sm font-bold text-slate-700 font-mono tracking-tight leading-none text-left">載入中...</span>
             </div>
         </div>
@@ -58,7 +58,7 @@
             <button id="tab-history-btn" onclick="window.switchTab('history')" class="flex-1 py-2 text-sm font-bold text-slate-400 transition-all">歷史紀錄</button>
         </div>
 
-        <!-- 區塊 A：操作頁面 (極簡化) -->
+        <!-- 區塊 A：操作頁面 -->
         <div id="section-action" class="space-y-4 animate-in fade-in duration-300">
             <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 space-y-4 text-left">
                 <!-- 模式切換 -->
@@ -75,11 +75,10 @@
                         <input type="text" id="action-search" oninput="window.onActionSearch(this.value)" placeholder="搜尋料號、型號、用途..." class="flex-1 bg-slate-50 border-0 rounded-xl px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-blue-500 font-mono" autocomplete="off">
                         <button onclick="window.startScanner()" class="bg-blue-100 text-blue-600 p-3 rounded-xl active:scale-90"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"></path></svg></button>
                     </div>
-                    <!-- 搜尋結果下拉選單 -->
                     <div id="action-search-results" class="absolute left-0 right-0 bg-white border border-slate-200 rounded-xl shadow-2xl z-50 mt-1 hidden max-h-64 overflow-y-auto hide-scroll"></div>
                 </div>
 
-                <!-- 已選定目標顯示區 (初始隱藏) -->
+                <!-- 已選定目標顯示區 -->
                 <div id="action-target-card" class="hidden bg-blue-50 border border-blue-100 rounded-xl p-4 mt-2">
                     <div class="flex justify-between items-start">
                         <div>
@@ -94,7 +93,6 @@
                     </div>
                 </div>
 
-                <!-- 數量操作 (需先選擇料號才開放點擊) -->
                 <div id="action-qty-section" class="space-y-1 text-center opacity-50 pointer-events-none transition-opacity">
                     <label class="text-[10px] font-bold text-slate-400 uppercase ml-1 text-left">異動數量</label>
                     <div class="flex items-center bg-slate-50 rounded-xl p-1 text-center">
@@ -162,7 +160,8 @@
                 <button onclick="window.closeItemForm()" class="text-slate-400 font-black p-2">✕</button>
             </div>
             <div class="space-y-3 max-h-[60vh] overflow-y-auto hide-scroll px-1">
-                <div class="space-y-1"><label class="text-[10px] font-bold text-slate-400 uppercase">料號 (SKU)</label><input type="text" id="form-sku" class="w-full bg-slate-50 border-0 rounded-xl px-4 py-3 text-sm font-bold font-mono outline-none focus:ring-2 focus:ring-blue-500"></div>
+                <!-- 加入 oninput 事件以實現自動帶入 -->
+                <div class="space-y-1"><label class="text-[10px] font-bold text-slate-400 uppercase">料號 (SKU)</label><input type="text" id="form-sku" oninput="window.onFormSkuTyping(this.value)" class="w-full bg-slate-50 border-0 rounded-xl px-4 py-3 text-sm font-bold font-mono outline-none focus:ring-2 focus:ring-blue-500"></div>
                 <div class="space-y-1"><label class="text-[10px] font-bold text-slate-400 uppercase">類別</label><select id="form-category" class="w-full bg-slate-50 border-0 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-blue-500"></select></div>
                 <div class="space-y-1"><label class="text-[10px] font-bold text-slate-400 uppercase">型號 (Model)</label><input type="text" id="form-model" class="w-full bg-slate-50 border-0 rounded-xl px-4 py-3 text-sm font-bold font-mono outline-none focus:ring-2 focus:ring-blue-500"></div>
                 <div class="space-y-1"><label class="text-[10px] font-bold text-slate-400 uppercase">所屬機群</label><select id="form-group" class="w-full bg-slate-50 border-0 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-blue-500"></select></div>
@@ -401,19 +400,24 @@
             }).join('');
         };
 
+        // 核心修復 1: 嚴格計算長度，不漏掉僅有「用途」差異的共用環境
         window.clickStockItem = (sku) => {
             const it = window.cachedStock.find(i => i.sku === sku); if (!it) return;
-            const gL = (it.group || "").split(",").map(s => s.trim()).filter(Boolean); const uL = (it.unit || "").split(",").map(s => s.trim()).filter(Boolean); const usL = (it.usage || "").split(",").map(s => s.trim());
-            const count = Math.max(gL.length, uL.length);
+            const gL = (it.group || "").split(",").map(s => s.trim()).filter(Boolean); 
+            const uL = (it.unit || "").split(",").map(s => s.trim()).filter(Boolean); 
+            const usL = (it.usage || "").split(",").map(s => s.trim());
+            const count = Math.max(gL.length, uL.length, usL.length); // 加入 usages 長度計算
             if (count > 1) { window.showContextPicker(it, gL, uL, usL, 'EDIT'); } else { window.openItemForm('EDIT', sku, 0); }
         };
 
         window.showContextPicker = (item, groups, units, usages, mode) => {
             window.activePickerSku = item.sku; const list = document.getElementById('context-options-list'); list.innerHTML = ""; document.getElementById('context-picker-modal').classList.remove('hidden');
             document.getElementById('picker-title').innerText = mode === 'DELETE' ? "選擇要刪除的環境" : "選擇要編輯的環境"; document.getElementById('picker-desc').innerText = "此料號為共用件："; document.getElementById('admin-full-delete-zone').classList.toggle('hidden', mode !== 'DELETE');
-            const count = Math.max(groups.length, units.length);
+            const count = Math.max(groups.length, units.length, usages.length); // 嚴格計算對齊
             for (let i = 0; i < count; i++) {
-                const g = groups[i] || groups[0] || ""; const u = units[i] || units[0] || ""; const us = usages[i] || usages[0] || "";
+                const g = groups[i] !== undefined ? groups[i] : (groups[0] || ""); 
+                const u = units[i] !== undefined ? units[i] : (units[0] || ""); 
+                const us = usages[i] !== undefined ? usages[i] : (usages[0] || "");
                 const btn = document.createElement('button'); btn.className = `w-full p-4 border rounded-2xl text-left mb-2 active:scale-95 transition-transform flex justify-between items-center ${mode === 'DELETE' ? 'bg-red-50 border-red-100' : 'bg-slate-50 border-slate-200'}`;
                 btn.innerHTML = `<div><span class="font-black ${mode === 'DELETE' ? 'text-red-600' : 'text-blue-600'} font-mono text-xs">${g}_${u}</span><div class="text-slate-800 text-xs mt-1">位：${us || '未註明'}</div></div><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" class="${mode === 'DELETE' ? 'text-red-400' : 'text-blue-400'}"><path d="${mode === 'DELETE' ? 'M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6' : 'M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z'}"/></svg>`;
                 btn.onclick = () => { if (mode === 'DELETE') window.executePartialDelete(item.sku, i); else { window.openItemForm('EDIT', item.sku, i); window.closeContextPicker(); } }; list.appendChild(btn);
@@ -432,6 +436,19 @@
             document.getElementById('item-form-modal').classList.remove('hidden');
         };
 
+        // 核心修復 2: 新增料號時自動帶入現有資訊
+        window.onFormSkuTyping = (val) => {
+            const sku = val.trim();
+            if(!sku) return;
+            const existing = window.cachedStock.find(i => i.sku === sku);
+            if(existing) {
+                const fCat = document.getElementById('form-category');
+                const fMod = document.getElementById('form-model');
+                if(existing.category && !fCat.value) fCat.value = existing.category;
+                if(existing.model && !fMod.value) fMod.value = existing.model;
+            }
+        };
+
         window.closeItemForm = () => document.getElementById('item-form-modal').classList.add('hidden');
 
         window.saveItemForm = async () => {
@@ -442,7 +459,22 @@
                 if (existing) {
                     if(confirm(`⚠️ 料號已存在！\n是否將此環境設定為該料號的「共用環境」？`)) {
                         const gL = existing.group ? existing.group.split(",").map(s=>s.trim()) : []; const uL = existing.unit ? existing.unit.split(",").map(s=>s.trim()) : []; const usL = existing.usage ? existing.usage.split(",").map(s=>s.trim()) : [];
-                        gL.push(group); uL.push(unit); usL.push(usage);
+                        
+                        let isExist = false;
+                        const count = Math.max(gL.length, uL.length, usL.length);
+                        for(let i=0; i<count; i++) {
+                            const curG = gL[i] !== undefined ? gL[i] : (gL[0]||"");
+                            const curU = uL[i] !== undefined ? uL[i] : (uL[0]||"");
+                            const curUs = usL[i] !== undefined ? usL[i] : (usL[0]||"");
+                            if (curG === group && curU === unit && curUs === usage) { isExist = true; break; }
+                        }
+                        if(!isExist) { 
+                            while(gL.length < count) gL.push(gL[0]||"");
+                            while(uL.length < count) uL.push(uL[0]||"");
+                            while(usL.length < count) usL.push(usL[0]||"");
+                            gL.push(group); uL.push(unit); usL.push(usage); 
+                        }
+                        
                         try { await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'stock', sku), { ...existing, group: gL.join(", "), unit: uL.join(", "), usage: usL.join(", "), lastOp: window.operatorId }); window.showToast("已新增共用環境", true); window.closeItemForm(); } catch(e) { window.showToast("儲存失敗", false); }
                     } return;
                 }
@@ -450,7 +482,7 @@
             } else {
                 const item = window.cachedStock.find(i => i.sku === window.formEditSku); if(!item) return;
                 const gL = item.group ? item.group.split(",").map(s=>s.trim()) : []; const uL = item.unit ? item.unit.split(",").map(s=>s.trim()) : []; const usL = item.usage ? item.usage.split(",").map(s=>s.trim()) : []; const idx = window.formEditIndex;
-                const count = Math.max(gL.length, uL.length);
+                const count = Math.max(gL.length, uL.length, usL.length); // 修正計算長度
                 if (count > 1 && (item.category !== cat || item.model !== model)) { if(!confirm("⚠️ 變更「類別」或「型號」將會套用到所有共用環境，確定繼續？")) return; }
                 while(gL.length <= idx) gL.push(gL[0]||""); while(uL.length <= idx) uL.push(uL[0]||""); while(usL.length <= idx) usL.push(usL[0]||""); gL[idx] = group; uL[idx] = unit; usL[idx] = usage;
                 try { await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'stock', window.formEditSku), { ...item, group: gL.join(", "), unit: uL.join(", "), usage: usL.join(", "), category: cat, model: model, lastOp: window.operatorId }); window.showToast("修改成功", true); window.closeItemForm(); } catch(e) { window.showToast("修改失敗", false); }
@@ -501,7 +533,7 @@
         window.deleteStockItem = async (sku) => {
             const it = window.cachedStock.find(i => i.sku === sku); if (!it) return;
             const gL = (it.group || "").split(",").map(s => s.trim()).filter(Boolean); const uL = (it.unit || "").split(",").map(s => s.trim()).filter(Boolean); const usL = (it.usage || "").split(",").map(s => s.trim());
-            const count = Math.max(gL.length, uL.length);
+            const count = Math.max(gL.length, uL.length, usL.length); // 修正計算長度
             if (count > 1) window.showContextPicker(it, gL, uL, usL, 'DELETE');
             else { if (confirm(`徹底刪除料號 ${sku}？`)) { try { await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'stock', sku)); window.showToast("已徹底刪除", true); } catch (e) { window.showToast("刪除失敗", false); } } }
         };
