@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>線邊倉助手 V3.1.2</title>
+    <title>線邊倉助手 V3.1.3</title>
     <!-- 手機 Debug 工具 -->
     <script src="https://cdn.jsdelivr.net/npm/eruda"></script><script>eruda.init();</script>
     <script src="https://unpkg.com/html5-qrcode"></script>
@@ -22,10 +22,10 @@
         #reader__dashboard { display: none !important; }
     </style>
 </head>
-<body class="bg-slate-50 min-h-screen pb-20 font-sans text-slate-900 text-left">
+<body class="bg-slate-50 min-h-screen pb-20 font-sans text-slate-900 text-left relative">
 
-    <!-- 登錄頁面 -->
-    <div id="setup-overlay" class="fixed ins3et-0 bg-blue-600 z-[1000] flex items-center justify-center p-6 hidden text-center">
+    <!-- 登錄頁面 (修正為 100dvh 滿版) -->
+    <div id="setup-overlay" class="fixed inset-0 h-[100dvh] w-full bg-blue-600 z-[9999] flex items-center justify-center p-6 hidden text-center">
         <div class="bg-white rounded-3xl p-8 w-full max-w-sm shadow-2xl border-4 border-blue-400">
             <h2 class="text-2xl font-black mb-2 text-slate-800 tracking-tight">工號登錄</h2>
             <p class="text-slate-500 text-sm mb-6 font-medium">請輸入您的8碼員工編號</p>
@@ -39,7 +39,7 @@
         <div class="flex items-center gap-2">
             <div class="flex flex-col text-left">
                 <span id="admin-badge" class="hidden text-[8px] font-black bg-amber-500 text-white px-1.5 py-0.5 rounded-full w-fit mb-0.5 uppercase shadow-sm">管理模式</span>
-                <span class="text-[10px] font-black text-slate-400 uppercase tracking-tighter">線邊倉助手 V3.1.2</span>
+                <span class="text-[10px] font-black text-slate-400 uppercase tracking-tighter">線邊倉助手 V3.1.3</span>
                 <span id="display-operator" class="text-sm font-bold text-slate-700 font-mono tracking-tight leading-none text-left">載入中...</span>
             </div>
         </div>
@@ -207,8 +207,16 @@
         <div class="bg-white w-full max-w-sm rounded-3xl p-6 space-y-6 shadow-2xl text-left" onclick="event.stopPropagation()">
             <div class="space-y-3"><h3 class="text-sm font-black border-l-4 border-blue-500 pl-2">類別管理</h3><div id="admin-cat-controls" class="hidden flex gap-2"><input type="text" id="new-category-name" placeholder="名稱..." class="flex-1 bg-slate-50 rounded-xl px-3 py-2 text-xs outline-none"><button onclick="window.addNewCategory()" class="bg-blue-600 text-white px-4 rounded-xl font-bold">+</button></div><div id="category-list-manager" class="space-y-1.5 max-h-32 overflow-y-auto font-mono text-left"></div></div>
             <div class="space-y-3"><h3 class="text-sm font-black border-l-4 border-amber-500 pl-2">機群管理</h3><div id="admin-group-controls" class="hidden flex gap-2"><input type="text" id="new-group-name" placeholder="名稱..." class="flex-1 bg-slate-50 rounded-xl px-3 py-2 text-xs outline-none"><button onclick="window.addNewGroup()" class="bg-amber-500 text-white px-4 rounded-xl font-bold">+</button></div><div id="group-list-manager" class="space-y-1.5 max-h-32 overflow-y-auto font-mono text-left"></div></div>
-            <!-- 管理員專屬：名單控制 -->
-            <div class="space-y-3"><h3 class="text-sm font-black border-l-4 border-purple-500 pl-2">管理員名單</h3><div id="admin-user-controls" class="hidden flex gap-2"><input type="text" id="new-admin-id" placeholder="8碼工號..." class="flex-1 bg-slate-50 rounded-xl px-3 py-2 text-xs outline-none"><button onclick="window.addAdmin()" class="bg-purple-600 text-white px-4 rounded-xl font-bold">+</button></div><div id="admin-list-manager" class="space-y-1.5 max-h-32 overflow-y-auto font-mono text-left"></div></div>
+            
+            <!-- 管理員專屬：名單控制 (權限隔離區塊) -->
+            <div id="admin-section-container" class="hidden space-y-3">
+                <h3 class="text-sm font-black border-l-4 border-purple-500 pl-2">管理員名單</h3>
+                <div class="flex gap-2">
+                    <input type="text" id="new-admin-id" placeholder="8碼工號..." class="flex-1 bg-slate-50 rounded-xl px-3 py-2 text-xs outline-none">
+                    <button onclick="window.addAdmin()" class="bg-purple-600 text-white px-4 rounded-xl font-bold">+</button>
+                </div>
+                <div id="admin-list-manager" class="space-y-1.5 max-h-32 overflow-y-auto font-mono text-left"></div>
+            </div>
             
             <button onclick="window.toggleSettingsManager(false)" class="w-full py-3 bg-slate-100 rounded-xl font-bold text-slate-500 text-sm mt-4">關閉面板</button>
         </div>
@@ -239,7 +247,7 @@
         window.adminModeActive = false;
         window.categories = [];
         window.machineGroups = [];
-        window.adminList = ['Admin']; // 預設管理員名單
+        window.adminList = ['Admin']; 
         window.html5QrCode = null;
         window.pendingTransaction = null;
         window.activePickerSku = null;
@@ -400,20 +408,19 @@
             }).join('');
         };
 
-        // 核心修復 1: 嚴格計算長度，不漏掉僅有「用途」差異的共用環境
         window.clickStockItem = (sku) => {
             const it = window.cachedStock.find(i => i.sku === sku); if (!it) return;
             const gL = (it.group || "").split(",").map(s => s.trim()).filter(Boolean); 
             const uL = (it.unit || "").split(",").map(s => s.trim()).filter(Boolean); 
             const usL = (it.usage || "").split(",").map(s => s.trim());
-            const count = Math.max(gL.length, uL.length, usL.length); // 加入 usages 長度計算
+            const count = Math.max(gL.length, uL.length, usL.length); 
             if (count > 1) { window.showContextPicker(it, gL, uL, usL, 'EDIT'); } else { window.openItemForm('EDIT', sku, 0); }
         };
 
         window.showContextPicker = (item, groups, units, usages, mode) => {
             window.activePickerSku = item.sku; const list = document.getElementById('context-options-list'); list.innerHTML = ""; document.getElementById('context-picker-modal').classList.remove('hidden');
             document.getElementById('picker-title').innerText = mode === 'DELETE' ? "選擇要刪除的環境" : "選擇要編輯的環境"; document.getElementById('picker-desc').innerText = "此料號為共用件："; document.getElementById('admin-full-delete-zone').classList.toggle('hidden', mode !== 'DELETE');
-            const count = Math.max(groups.length, units.length, usages.length); // 嚴格計算對齊
+            const count = Math.max(groups.length, units.length, usages.length); 
             for (let i = 0; i < count; i++) {
                 const g = groups[i] !== undefined ? groups[i] : (groups[0] || ""); 
                 const u = units[i] !== undefined ? units[i] : (units[0] || ""); 
@@ -436,7 +443,6 @@
             document.getElementById('item-form-modal').classList.remove('hidden');
         };
 
-        // 核心修復 2: 新增料號時自動帶入現有資訊
         window.onFormSkuTyping = (val) => {
             const sku = val.trim();
             if(!sku) return;
@@ -482,7 +488,7 @@
             } else {
                 const item = window.cachedStock.find(i => i.sku === window.formEditSku); if(!item) return;
                 const gL = item.group ? item.group.split(",").map(s=>s.trim()) : []; const uL = item.unit ? item.unit.split(",").map(s=>s.trim()) : []; const usL = item.usage ? item.usage.split(",").map(s=>s.trim()) : []; const idx = window.formEditIndex;
-                const count = Math.max(gL.length, uL.length, usL.length); // 修正計算長度
+                const count = Math.max(gL.length, uL.length, usL.length); 
                 if (count > 1 && (item.category !== cat || item.model !== model)) { if(!confirm("⚠️ 變更「類別」或「型號」將會套用到所有共用環境，確定繼續？")) return; }
                 while(gL.length <= idx) gL.push(gL[0]||""); while(uL.length <= idx) uL.push(uL[0]||""); while(usL.length <= idx) usL.push(usL[0]||""); gL[idx] = group; uL[idx] = unit; usL[idx] = usage;
                 try { await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'stock', window.formEditSku), { ...item, group: gL.join(", "), unit: uL.join(", "), usage: usL.join(", "), category: cat, model: model, lastOp: window.operatorId }); window.showToast("修改成功", true); window.closeItemForm(); } catch(e) { window.showToast("修改失敗", false); }
@@ -533,7 +539,7 @@
         window.deleteStockItem = async (sku) => {
             const it = window.cachedStock.find(i => i.sku === sku); if (!it) return;
             const gL = (it.group || "").split(",").map(s => s.trim()).filter(Boolean); const uL = (it.unit || "").split(",").map(s => s.trim()).filter(Boolean); const usL = (it.usage || "").split(",").map(s => s.trim());
-            const count = Math.max(gL.length, uL.length, usL.length); // 修正計算長度
+            const count = Math.max(gL.length, uL.length);
             if (count > 1) window.showContextPicker(it, gL, uL, usL, 'DELETE');
             else { if (confirm(`徹底刪除料號 ${sku}？`)) { try { await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'stock', sku)); window.showToast("已徹底刪除", true); } catch (e) { window.showToast("刪除失敗", false); } } }
         };
@@ -559,8 +565,26 @@
             } catch (e) { window.showToast("回退失敗", false); }
         };
 
-        window.toggleAdminMode = () => { window.adminModeActive = !window.adminModeActive; document.getElementById('top-nav').classList.toggle('admin-glow', window.adminModeActive); document.getElementById('admin-badge').classList.toggle('hidden', !window.adminModeActive); window.applyFilters(); window.renderHistory(window.cachedHistory); window.renderOptions(); };
-        window.toggleSettingsManager = (s) => { document.getElementById('settings-modal').classList.toggle('hidden', !s); if(s) { document.getElementById('admin-cat-controls').classList.toggle('hidden', !window.adminModeActive); document.getElementById('admin-group-controls').classList.toggle('hidden', !window.adminModeActive); document.getElementById('admin-user-controls').classList.toggle('hidden', !window.adminModeActive); } };
+        // 開關管理模式與設定面板 (修正權限隱藏邏輯)
+        window.toggleAdminMode = () => { 
+            window.adminModeActive = !window.adminModeActive; 
+            document.getElementById('top-nav').classList.toggle('admin-glow', window.adminModeActive); 
+            document.getElementById('admin-badge').classList.toggle('hidden', !window.adminModeActive); 
+            window.applyFilters(); 
+            window.renderHistory(window.cachedHistory); 
+            window.renderOptions(); 
+        };
+        
+        window.toggleSettingsManager = (s) => { 
+            document.getElementById('settings-modal').classList.toggle('hidden', !s); 
+            if(s) { 
+                document.getElementById('admin-cat-controls').classList.toggle('hidden', !window.adminModeActive); 
+                document.getElementById('admin-group-controls').classList.toggle('hidden', !window.adminModeActive); 
+                // 新增：整個管理員名單區塊只有開啟管理員模式時才顯示
+                const adminSec = document.getElementById('admin-section-container');
+                if(adminSec) adminSec.classList.toggle('hidden', !window.adminModeActive);
+            } 
+        };
         
         window.addNewCategory = async () => { const i = document.getElementById('new-category-name'); const v = i.value.trim(); if(!v) return; try { await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'categories', 'all'), { list: [...new Set([...window.categories, v])] }); i.value = ""; window.showToast("已新增", true); } catch(e) {} };
         window.addNewGroup = async () => { const i = document.getElementById('new-group-name'); const v = i.value.trim(); if(!v) return; try { await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'groups', 'all'), { list: [...new Set([...window.machineGroups, v])] }); i.value = ""; window.showToast("已新增", true); } catch(e) {} };
