@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>線邊倉助手 V3.1.3</title>
+    <title>線邊倉助手 V3.1.4</title>
     <!-- 手機 Debug 工具 -->
     <script src="https://cdn.jsdelivr.net/npm/eruda"></script><script>eruda.init();</script>
     <script src="https://unpkg.com/html5-qrcode"></script>
@@ -24,7 +24,7 @@
 </head>
 <body class="bg-slate-50 min-h-screen pb-20 font-sans text-slate-900 text-left relative">
 
-    <!-- 登錄頁面 (修正為 100dvh 滿版) -->
+    <!-- 登錄頁面 -->
     <div id="setup-overlay" class="fixed inset-0 h-[100dvh] w-full bg-blue-600 z-[9999] flex items-center justify-center p-6 hidden text-center">
         <div class="bg-white rounded-3xl p-8 w-full max-w-sm shadow-2xl border-4 border-blue-400">
             <h2 class="text-2xl font-black mb-2 text-slate-800 tracking-tight">工號登錄</h2>
@@ -39,7 +39,7 @@
         <div class="flex items-center gap-2">
             <div class="flex flex-col text-left">
                 <span id="admin-badge" class="hidden text-[8px] font-black bg-amber-500 text-white px-1.5 py-0.5 rounded-full w-fit mb-0.5 uppercase shadow-sm">管理模式</span>
-                <span class="text-[10px] font-black text-slate-400 uppercase tracking-tighter">線邊倉助手 V3.1.3</span>
+                <span class="text-[10px] font-black text-slate-400 uppercase tracking-tighter">線邊倉助手 V3.1.4</span>
                 <span id="display-operator" class="text-sm font-bold text-slate-700 font-mono tracking-tight leading-none text-left">載入中...</span>
             </div>
         </div>
@@ -160,7 +160,6 @@
                 <button onclick="window.closeItemForm()" class="text-slate-400 font-black p-2">✕</button>
             </div>
             <div class="space-y-3 max-h-[60vh] overflow-y-auto hide-scroll px-1">
-                <!-- 加入 oninput 事件以實現自動帶入 -->
                 <div class="space-y-1"><label class="text-[10px] font-bold text-slate-400 uppercase">料號 (SKU)</label><input type="text" id="form-sku" oninput="window.onFormSkuTyping(this.value)" class="w-full bg-slate-50 border-0 rounded-xl px-4 py-3 text-sm font-bold font-mono outline-none focus:ring-2 focus:ring-blue-500"></div>
                 <div class="space-y-1"><label class="text-[10px] font-bold text-slate-400 uppercase">類別</label><select id="form-category" class="w-full bg-slate-50 border-0 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-blue-500"></select></div>
                 <div class="space-y-1"><label class="text-[10px] font-bold text-slate-400 uppercase">型號 (Model)</label><input type="text" id="form-model" class="w-full bg-slate-50 border-0 rounded-xl px-4 py-3 text-sm font-bold font-mono outline-none focus:ring-2 focus:ring-blue-500"></div>
@@ -247,7 +246,7 @@
         window.adminModeActive = false;
         window.categories = [];
         window.machineGroups = [];
-        window.adminList = ['Admin']; 
+        window.adminList = ['Admin']; // 預設管理員名單
         window.html5QrCode = null;
         window.pendingTransaction = null;
         window.activePickerSku = null;
@@ -495,6 +494,26 @@
             }
         };
 
+        // 核心修復：使用 applyHistoryFilters 確保連動正確
+        window.toggleAdminMode = () => { 
+            window.adminModeActive = !window.adminModeActive; 
+            document.getElementById('top-nav').classList.toggle('admin-glow', window.adminModeActive); 
+            document.getElementById('admin-badge').classList.toggle('hidden', !window.adminModeActive); 
+            window.applyFilters(); // 更新庫存列表
+            window.applyHistoryFilters(); // 更新歷史紀錄列表 (包含刪除按鈕)
+            window.renderOptions(); // 更新設定面板
+        };
+
+        window.toggleSettingsManager = (s) => { 
+            document.getElementById('settings-modal').classList.toggle('hidden', !s); 
+            if(s) { 
+                document.getElementById('admin-cat-controls').classList.toggle('hidden', !window.adminModeActive); 
+                document.getElementById('admin-group-controls').classList.toggle('hidden', !window.adminModeActive); 
+                const adminSec = document.getElementById('admin-section-container');
+                if(adminSec) adminSec.classList.toggle('hidden', !window.adminModeActive);
+            } 
+        };
+
         window.applyHistoryFilters = () => {
             const search = document.getElementById('hist-search')?.value.trim().toLowerCase() || "";
             const opSearch = document.getElementById('hist-op')?.value.trim().toLowerCase() || "";
@@ -563,27 +582,6 @@
                     tx.delete(doc(db, 'artifacts', appId, 'public', 'data', 'history', id)); tx.update(sRef, { qty: rb, lastOp: `${opName}(Rb)` });
                 }); window.showToast("紀錄已回退", true);
             } catch (e) { window.showToast("回退失敗", false); }
-        };
-
-        // 開關管理模式與設定面板 (修正權限隱藏邏輯)
-        window.toggleAdminMode = () => { 
-            window.adminModeActive = !window.adminModeActive; 
-            document.getElementById('top-nav').classList.toggle('admin-glow', window.adminModeActive); 
-            document.getElementById('admin-badge').classList.toggle('hidden', !window.adminModeActive); 
-            window.applyFilters(); 
-            window.renderHistory(window.cachedHistory); 
-            window.renderOptions(); 
-        };
-        
-        window.toggleSettingsManager = (s) => { 
-            document.getElementById('settings-modal').classList.toggle('hidden', !s); 
-            if(s) { 
-                document.getElementById('admin-cat-controls').classList.toggle('hidden', !window.adminModeActive); 
-                document.getElementById('admin-group-controls').classList.toggle('hidden', !window.adminModeActive); 
-                // 新增：整個管理員名單區塊只有開啟管理員模式時才顯示
-                const adminSec = document.getElementById('admin-section-container');
-                if(adminSec) adminSec.classList.toggle('hidden', !window.adminModeActive);
-            } 
         };
         
         window.addNewCategory = async () => { const i = document.getElementById('new-category-name'); const v = i.value.trim(); if(!v) return; try { await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'categories', 'all'), { list: [...new Set([...window.categories, v])] }); i.value = ""; window.showToast("已新增", true); } catch(e) {} };
