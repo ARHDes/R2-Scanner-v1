@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>線邊倉助手 V3.1.5</title>
+    <title>線邊倉助手 V3.1.6</title>
     <!-- 手機 Debug 工具 -->
     <script src="https://cdn.jsdelivr.net/npm/eruda"></script><script>eruda.init();</script>
     <script src="https://unpkg.com/html5-qrcode"></script>
@@ -18,6 +18,7 @@
         .admin-glow { box-shadow: 0 0 15px rgba(245, 158, 11, 0.3); border: 1px solid rgba(245, 158, 11, 0.5); }
         .hide-scroll::-webkit-scrollbar { display: none; }
         .unit-badge { display: inline-block; background: #f1f5f9; color: #334155; padding: 2px 8px; border-radius: 6px; font-size: 10px; margin-right: 4px; font-weight: 900; border: 1px solid #e2e8f0; }
+        .unit-badge-danger { display: inline-block; background: #fee2e2; color: #991b1b; padding: 2px 8px; border-radius: 6px; font-size: 10px; margin-right: 4px; font-weight: 900; border: 1px solid #fca5a5; }
         #reader__scan_region { border-radius: 20px; overflow: hidden; }
         #reader__dashboard { display: none !important; }
     </style>
@@ -39,7 +40,7 @@
         <div class="flex items-center gap-2">
             <div class="flex flex-col text-left">
                 <span id="admin-badge" class="hidden text-[8px] font-black bg-amber-500 text-white px-1.5 py-0.5 rounded-full w-fit mb-0.5 uppercase shadow-sm">管理模式</span>
-                <span class="text-[10px] font-black text-slate-400 uppercase tracking-tighter">線邊倉助手 V3.1.5</span>
+                <span class="text-[10px] font-black text-slate-400 uppercase tracking-tighter">線邊倉助手 V3.1.6</span>
                 <span id="display-operator" class="text-sm font-bold text-slate-700 font-mono tracking-tight leading-none text-left">載入中...</span>
             </div>
         </div>
@@ -61,14 +62,12 @@
         <!-- 區塊 A：操作頁面 -->
         <div id="section-action" class="space-y-4 animate-in fade-in duration-300">
             <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 space-y-4 text-left">
-                <!-- 模式切換 -->
                 <div class="flex gap-2 p-1 bg-slate-50 rounded-xl text-center">
                     <button id="mode-in" onclick="window.setMode('IN')" class="flex-1 py-2 rounded-lg bg-blue-600 text-white font-bold text-xs shadow-md">入庫</button>
                     <button id="mode-out" onclick="window.setMode('OUT')" class="flex-1 py-2 rounded-lg text-slate-400 font-bold text-xs">出庫</button>
                     <button id="mode-count" onclick="window.setMode('COUNT')" class="flex-1 py-2 rounded-lg text-slate-400 font-bold text-xs">盤點</button>
                 </div>
                 
-                <!-- 搜尋與選擇料號 -->
                 <div class="space-y-1 relative">
                     <label class="text-[10px] font-bold text-slate-400 uppercase ml-1">尋找欲操作的料號</label>
                     <div class="flex gap-2">
@@ -78,7 +77,6 @@
                     <div id="action-search-results" class="absolute left-0 right-0 bg-white border border-slate-200 rounded-xl shadow-2xl z-50 mt-1 hidden max-h-64 overflow-y-auto hide-scroll"></div>
                 </div>
 
-                <!-- 已選定目標顯示區 -->
                 <div id="action-target-card" class="hidden bg-blue-50 border border-blue-100 rounded-xl p-4 mt-2">
                     <div class="flex justify-between items-start">
                         <div>
@@ -152,21 +150,22 @@
         </div>
     </main>
 
-    <!-- 彈窗：料號資料表單 -->
+    <!-- 彈窗：料號資料表單 (新增使用數量欄位) -->
     <div id="item-form-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[5000] hidden flex items-center justify-center p-6">
         <div class="bg-white w-full max-w-sm rounded-3xl p-6 space-y-4 shadow-2xl text-left" onclick="event.stopPropagation()">
             <div class="flex justify-between items-center border-b pb-2 mb-2">
                 <h3 id="form-modal-title" class="text-lg font-black text-slate-800">新增料號</h3>
                 <button onclick="window.closeItemForm()" class="text-slate-400 font-black p-2">✕</button>
             </div>
-            <div class="space-y-3 max-h-[60vh] overflow-y-auto hide-scroll px-1">
+            <div class="space-y-3 max-h-[65vh] overflow-y-auto hide-scroll px-1">
                 <div class="space-y-1"><label class="text-[10px] font-bold text-slate-400 uppercase">料號 (SKU)</label><input type="text" id="form-sku" oninput="window.onFormSkuTyping(this.value)" class="w-full bg-slate-50 border-0 rounded-xl px-4 py-3 text-sm font-bold font-mono outline-none focus:ring-2 focus:ring-blue-500"></div>
                 <div class="space-y-1"><label class="text-[10px] font-bold text-slate-400 uppercase">類別</label><select id="form-category" class="w-full bg-slate-50 border-0 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-blue-500"></select></div>
                 <div class="space-y-1"><label class="text-[10px] font-bold text-slate-400 uppercase">型號 (Model)</label><input type="text" id="form-model" class="w-full bg-slate-50 border-0 rounded-xl px-4 py-3 text-sm font-bold font-mono outline-none focus:ring-2 focus:ring-blue-500"></div>
                 <div class="space-y-1"><label class="text-[10px] font-bold text-slate-400 uppercase">所屬機群</label><select id="form-group" class="w-full bg-slate-50 border-0 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-blue-500"></select></div>
                 <div class="space-y-1"><label class="text-[10px] font-bold text-slate-400 uppercase">Unit 名稱</label><input type="text" id="form-unit" class="w-full bg-slate-50 border-0 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-blue-500"></div>
                 <div class="space-y-1"><label class="text-[10px] font-bold text-slate-400 uppercase">位置 / 用途</label><input type="text" id="form-usage" class="w-full bg-slate-50 border-0 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-blue-500"></div>
-                <div id="form-qty-container" class="space-y-1"><label class="text-[10px] font-bold text-slate-400 uppercase">初始數量</label><input type="number" id="form-qty" value="0" class="w-full bg-slate-50 border-0 rounded-xl px-4 py-3 text-sm font-black outline-none focus:ring-2 focus:ring-blue-500 text-center"></div>
+                <div class="space-y-1"><label class="text-[10px] font-bold text-purple-500 uppercase flex items-center gap-1">該環境使用數量 <span class="text-[8px] bg-purple-100 text-purple-600 px-1 rounded">安全水位基準</span></label><input type="number" id="form-use-qty" value="1" min="0" class="w-full bg-slate-50 border-0 rounded-xl px-4 py-3 text-sm font-black outline-none focus:ring-2 focus:ring-purple-500 text-center"></div>
+                <div id="form-qty-container" class="space-y-1"><label class="text-[10px] font-bold text-slate-400 uppercase">庫存初始數量</label><input type="number" id="form-qty" value="0" class="w-full bg-slate-50 border-0 rounded-xl px-4 py-3 text-sm font-black outline-none focus:ring-2 focus:ring-blue-500 text-center"></div>
             </div>
             <button onclick="window.saveItemForm()" class="w-full py-4 bg-blue-600 text-white rounded-xl font-black text-lg shadow-lg active:scale-95 transition-all mt-2">儲存資料</button>
         </div>
@@ -195,8 +194,8 @@
     <div id="import-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[2000] hidden flex items-center justify-center p-6 text-left" onclick="window.closeImportModal()">
         <div class="bg-white w-full max-w-md rounded-3xl p-6 space-y-4 shadow-2xl text-left" onclick="event.stopPropagation()">
             <h3 class="text-xl font-black">智慧文字匯入</h3>
-            <p class="text-[10px] text-slate-400 mt-1">格式：機群,Unit,類別,位置,料號,數量,型號</p>
-            <textarea id="import-text-area" placeholder="CSCR,PC,CYLINDER,Clamp,SKU,0,MODEL" class="w-full h-48 bg-slate-50 border-2 border-dashed rounded-xl p-3 text-xs font-mono outline-none"></textarea>
+            <p class="text-[10px] text-slate-400 mt-1">格式：機群,Unit,類別,位置,料號,數量,型號,使用量(可選填)</p>
+            <textarea id="import-text-area" placeholder="CSCR,PC,CYLINDER,Clamp,SKU,0,MODEL,1" class="w-full h-48 bg-slate-50 border-2 border-dashed rounded-xl p-3 text-xs font-mono outline-none"></textarea>
             <div class="flex gap-3 text-center"><button onclick="window.closeImportModal()" class="flex-1 py-3 bg-slate-100 rounded-xl font-bold text-slate-500">取消</button><button onclick="window.processPastedText()" class="flex-1 py-3 bg-blue-600 text-white rounded-xl font-bold">匯入</button></div>
         </div>
     </div>
@@ -313,7 +312,10 @@
             
             const catMgr = document.getElementById('category-list-manager'); if(catMgr) catMgr.innerHTML = window.categories.map(c => `<div class="flex justify-between items-center bg-slate-50 p-2 rounded-xl mb-1"><span class="text-xs font-bold">${c}</span>${window.adminModeActive ? `<button onclick="window.removeCategory('${c}')" class="text-red-500 font-bold text-[9px]">移除</button>` : ''}</div>`).join('');
             const grpMgr = document.getElementById('group-list-manager'); if(grpMgr) grpMgr.innerHTML = window.machineGroups.map(g => `<div class="flex justify-between items-center bg-slate-50 p-2 rounded-xl mb-1"><span class="text-xs font-bold">${g}</span>${window.adminModeActive ? `<button onclick="window.removeGroup('${g}')" class="text-red-500 font-bold text-[9px]">移除</button>` : ''}</div>`).join('');
-            const admMgr = document.getElementById('admin-list-manager'); if(admMgr) admMgr.innerHTML = window.adminList.map(a => `<div class="flex justify-between items-center bg-slate-50 p-2 rounded-xl mb-1"><span class="text-xs font-bold">${a}</span>${window.adminModeActive && a !== 'Admin' ? `<button onclick="window.removeAdmin('${a}')" class="text-red-500 font-bold text-[9px]">移除</button>` : ''}</div>`).join('');
+            
+            // 核心修改 1：管理員名單中過濾掉 'Admin' 不顯示
+            const admMgr = document.getElementById('admin-list-manager'); 
+            if(admMgr) admMgr.innerHTML = window.adminList.filter(a => a !== 'Admin').map(a => `<div class="flex justify-between items-center bg-slate-50 p-2 rounded-xl mb-1"><span class="text-xs font-bold">${a}</span>${window.adminModeActive ? `<button onclick="window.removeAdmin('${a}')" class="text-red-500 font-bold text-[9px]">移除</button>` : ''}</div>`).join('');
         };
 
         window.setMode = (m) => { 
@@ -374,7 +376,6 @@
 
         window.stepQty = (v) => { const i = document.getElementById('input-qty'); i.value = Math.max(0, (parseInt(i.value) || 0) + v); };
 
-        // 核心更新：加入級聯更新「類別」選單的邏輯
         window.updateUnitDropdown = () => { 
             const selG = document.getElementById('filter-group')?.value || ""; 
             const uSet = new Set(); 
@@ -396,15 +397,11 @@
             const selG = document.getElementById('filter-group')?.value || "";
             const selU = document.getElementById('filter-unit')?.value || "";
             const cSet = new Set();
-
             window.cachedStock.forEach(i => {
                 let matchG = !selG || (i.group || "").includes(selG);
                 let matchU = !selU || (i.unit || "").includes(selU);
-                if (matchG && matchU && i.category) {
-                    cSet.add(i.category);
-                }
+                if (matchG && matchU && i.category) cSet.add(i.category);
             });
-
             const filterCat = document.getElementById('filter-category');
             if (filterCat) {
                 const curVal = filterCat.value;
@@ -422,9 +419,7 @@
                 fG.innerHTML = '<option value="">所有機群</option>' + Array.from(gS).filter(Boolean).sort().map(g => `<option value="${g}">${g}</option>`).join(''); 
                 if (Array.from(gS).includes(curVal)) fG.value = curVal;
             }
-            window.renderOptions(); 
-            window.updateUnitDropdown(); 
-            window.updateCategoryDropdown();
+            window.renderOptions(); window.updateUnitDropdown(); window.updateCategoryDropdown();
         };
 
         window.applyFilters = () => {
@@ -442,36 +437,47 @@
             window.renderStockList(filtered);
         };
 
-        window.onFilterGroupChange = () => { 
-            window.updateUnitDropdown(); 
-            window.updateCategoryDropdown();
-            window.applyFilters(); 
-        };
-        
-        window.onFilterUnitChange = () => { 
-            window.updateCategoryDropdown();
-            window.applyFilters(); 
-        };
-        
+        window.onFilterGroupChange = () => { window.updateUnitDropdown(); window.updateCategoryDropdown(); window.applyFilters(); };
+        window.onFilterUnitChange = () => { window.updateCategoryDropdown(); window.applyFilters(); };
         window.resetStockFilters = () => { 
-            document.getElementById('filter-group').selectedIndex = 0; 
-            window.updateUnitDropdown();
-            document.getElementById('filter-unit').selectedIndex = 0; 
-            window.updateCategoryDropdown();
+            document.getElementById('filter-group').selectedIndex = 0; window.updateUnitDropdown();
+            document.getElementById('filter-unit').selectedIndex = 0; window.updateCategoryDropdown();
             document.getElementById('filter-category').selectedIndex = 0; 
-            document.getElementById('filter-usage').value = ""; 
-            window.applyFilters(); 
+            document.getElementById('filter-usage').value = ""; window.applyFilters(); 
         };
 
+        // 核心修改 2 & 3：計算安全水位與高亮顯示
         window.renderStockList = (data) => {
             const list = document.getElementById('stock-list'); if (!list) return;
             if (!data.length) return list.innerHTML = '<div class="py-20 text-slate-300 text-xs text-center uppercase">無匹配資料</div>';
+            
             list.innerHTML = data.map(i => {
-                const gL = (i.group || "").split(",").map(s => s.trim()).filter(Boolean); const uL = (i.unit || "").split(",").map(s => s.trim()).filter(Boolean);
+                const gL = (i.group || "").split(",").map(s => s.trim()).filter(Boolean); 
+                const uL = (i.unit || "").split(",").map(s => s.trim()).filter(Boolean);
+                const uqL = (i.useQty || "").split(",").map(s => parseInt(s.trim()) || 0); // 取出各環境使用量
+                
                 const b = uL.map((u, idx) => `<span class="unit-badge">${(gL[idx] || gL[0])}_${u}</span>`).join('');
-                return `<div class="bg-white p-4 rounded-2xl border border-slate-100 flex justify-between items-center shadow-sm active:bg-slate-50 mb-2 text-left cursor-pointer" onclick="window.clickStockItem('${i.sku}')">
-                    <div class="flex-1 pr-2"><div class="mb-1 flex flex-wrap gap-1">${b}</div><div class="text-[10px] font-black text-blue-600 font-mono">${i.model || '無型號'}</div><div class="font-black text-slate-800 text-sm font-mono leading-none">${i.sku}</div><div class="text-[11px] text-slate-500 mt-2 font-black"><span class="text-slate-400 font-bold mr-1 uppercase">${i.category||'未分類'}</span> | 位：${i.usage||'未註明'}</div></div>
-                    <div class="flex flex-col items-end gap-2"><div class="text-xl font-black ${i.qty < 0 ? 'text-red-500' : 'text-slate-800'} font-mono">${i.qty}</div>${window.adminModeActive ? `<button onclick="event.stopPropagation(); window.deleteStockItem('${i.sku}')" class="p-1.5 bg-red-50 text-red-500 rounded-lg active:scale-90"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>` : ''}</div>
+                
+                // 計算總安全水位 (加總所有環境的使用量)
+                const totalSafetyStock = uqL.reduce((sum, val) => sum + val, 0);
+                const isLowStock = totalSafetyStock > 0 && i.qty < totalSafetyStock;
+                const cardStyle = isLowStock ? "bg-red-50 border-red-200 shadow-md" : "bg-white border-slate-100 shadow-sm";
+                const textStyle = isLowStock ? "text-red-700" : "text-slate-800";
+                
+                return `<div class="${cardStyle} p-4 rounded-2xl border flex justify-between items-center active:scale-[0.99] transition-transform mb-2 text-left cursor-pointer" onclick="window.clickStockItem('${i.sku}')">
+                    <div class="flex-1 pr-2">
+                        <div class="mb-1 flex flex-wrap gap-1">${b}</div>
+                        <div class="text-[10px] font-black ${isLowStock ? 'text-red-400' : 'text-blue-600'} font-mono">${i.model || '無型號'}</div>
+                        <div class="font-black ${textStyle} text-sm font-mono leading-none">${i.sku}</div>
+                        <div class="text-[11px] text-slate-500 mt-2 font-black flex items-center gap-1.5">
+                            <span class="text-slate-400 font-bold uppercase">${i.category||'未分類'}</span> | 位：${i.usage||'未註明'}
+                        </div>
+                    </div>
+                    <div class="flex flex-col items-end gap-1.5">
+                        <div class="text-2xl font-black ${isLowStock ? 'text-red-600' : 'text-slate-800'} font-mono leading-none">${i.qty}</div>
+                        ${totalSafetyStock > 0 ? `<div class="text-[9px] font-bold ${isLowStock ? 'text-red-500 bg-red-100 px-1.5 rounded' : 'text-slate-400'}">⚠️ 安全水位: ${totalSafetyStock}</div>` : `<div class="text-[9px] text-slate-300">未設水位</div>`}
+                        ${window.adminModeActive ? `<button onclick="event.stopPropagation(); window.deleteStockItem('${i.sku}')" class="mt-1 p-1.5 bg-red-100 text-red-600 rounded-lg active:scale-90"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>` : ''}
+                    </div>
                 </div>`;
             }).join('');
         };
@@ -481,11 +487,12 @@
             const gL = (it.group || "").split(",").map(s => s.trim()).filter(Boolean); 
             const uL = (it.unit || "").split(",").map(s => s.trim()).filter(Boolean); 
             const usL = (it.usage || "").split(",").map(s => s.trim());
+            const uqL = (it.useQty || "").split(",").map(s => s.trim());
             const count = Math.max(gL.length, uL.length, usL.length); 
-            if (count > 1) { window.showContextPicker(it, gL, uL, usL, 'EDIT'); } else { window.openItemForm('EDIT', sku, 0); }
+            if (count > 1) { window.showContextPicker(it, gL, uL, usL, uqL, 'EDIT'); } else { window.openItemForm('EDIT', sku, 0); }
         };
 
-        window.showContextPicker = (item, groups, units, usages, mode) => {
+        window.showContextPicker = (item, groups, units, usages, useQtys, mode) => {
             window.activePickerSku = item.sku; const list = document.getElementById('context-options-list'); list.innerHTML = ""; document.getElementById('context-picker-modal').classList.remove('hidden');
             document.getElementById('picker-title').innerText = mode === 'DELETE' ? "選擇要刪除的環境" : "選擇要編輯的環境"; document.getElementById('picker-desc').innerText = "此料號為共用件："; document.getElementById('admin-full-delete-zone').classList.toggle('hidden', mode !== 'DELETE');
             const count = Math.max(groups.length, units.length, usages.length); 
@@ -493,20 +500,21 @@
                 const g = groups[i] !== undefined ? groups[i] : (groups[0] || ""); 
                 const u = units[i] !== undefined ? units[i] : (units[0] || ""); 
                 const us = usages[i] !== undefined ? usages[i] : (usages[0] || "");
+                const uq = useQtys[i] !== undefined ? useQtys[i] : (useQtys[0] || "0");
                 const btn = document.createElement('button'); btn.className = `w-full p-4 border rounded-2xl text-left mb-2 active:scale-95 transition-transform flex justify-between items-center ${mode === 'DELETE' ? 'bg-red-50 border-red-100' : 'bg-slate-50 border-slate-200'}`;
-                btn.innerHTML = `<div><span class="font-black ${mode === 'DELETE' ? 'text-red-600' : 'text-blue-600'} font-mono text-xs">${g}_${u}</span><div class="text-slate-800 text-xs mt-1">位：${us || '未註明'}</div></div><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" class="${mode === 'DELETE' ? 'text-red-400' : 'text-blue-400'}"><path d="${mode === 'DELETE' ? 'M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6' : 'M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z'}"/></svg>`;
+                btn.innerHTML = `<div><span class="font-black ${mode === 'DELETE' ? 'text-red-600' : 'text-blue-600'} font-mono text-xs">${g}_${u}</span><div class="text-slate-800 text-xs mt-1">位：${us || '未註明'} <span class="text-purple-500 ml-2 font-bold bg-purple-50 px-1 rounded">使用量: ${uq}</span></div></div><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" class="${mode === 'DELETE' ? 'text-red-400' : 'text-blue-400'}"><path d="${mode === 'DELETE' ? 'M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6' : 'M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z'}"/></svg>`;
                 btn.onclick = () => { if (mode === 'DELETE') window.executePartialDelete(item.sku, i); else { window.openItemForm('EDIT', item.sku, i); window.closeContextPicker(); } }; list.appendChild(btn);
             }
         };
 
         window.openItemForm = (mode, sku = null, idx = 0) => {
             window.formMode = mode; window.formEditSku = sku; window.formEditIndex = idx; window.renderOptions(); 
-            const title = document.getElementById('form-modal-title'); const fSku = document.getElementById('form-sku'); const fCat = document.getElementById('form-category'); const fMod = document.getElementById('form-model'); const fGrp = document.getElementById('form-group'); const fUnt = document.getElementById('form-unit'); const fUsg = document.getElementById('form-usage'); const fQtyC = document.getElementById('form-qty-container'); const fQty = document.getElementById('form-qty');
+            const title = document.getElementById('form-modal-title'); const fSku = document.getElementById('form-sku'); const fCat = document.getElementById('form-category'); const fMod = document.getElementById('form-model'); const fGrp = document.getElementById('form-group'); const fUnt = document.getElementById('form-unit'); const fUsg = document.getElementById('form-usage'); const fQtyC = document.getElementById('form-qty-container'); const fQty = document.getElementById('form-qty'); const fUseQty = document.getElementById('form-use-qty');
             if (mode === 'ADD') {
-                title.innerText = "新增料號"; fSku.value = ""; fSku.disabled = false; fSku.classList.remove('text-slate-400'); fCat.selectedIndex = 0; fMod.value = ""; fGrp.selectedIndex = 0; fUnt.value = ""; fUsg.value = ""; fQtyC.classList.remove('hidden'); fQty.value = "0";
+                title.innerText = "新增料號"; fSku.value = ""; fSku.disabled = false; fSku.classList.remove('text-slate-400'); fCat.selectedIndex = 0; fMod.value = ""; fGrp.selectedIndex = 0; fUnt.value = ""; fUsg.value = ""; fUseQty.value = "1"; fQtyC.classList.remove('hidden'); fQty.value = "0";
             } else {
                 title.innerText = "編輯環境屬性"; const item = window.cachedStock.find(i => i.sku === sku);
-                if(item) { fSku.value = item.sku; fSku.disabled = true; fSku.classList.add('text-slate-400'); fCat.value = item.category || ""; fMod.value = item.model || ""; const gL = (item.group || "").split(",").map(s => s.trim()); const uL = (item.unit || "").split(",").map(s => s.trim()); const usL = (item.usage || "").split(",").map(s => s.trim()); fGrp.value = gL[idx] || gL[0] || ""; fUnt.value = uL[idx] || uL[0] || ""; fUsg.value = usL[idx] || usL[0] || ""; } fQtyC.classList.add('hidden'); 
+                if(item) { fSku.value = item.sku; fSku.disabled = true; fSku.classList.add('text-slate-400'); fCat.value = item.category || ""; fMod.value = item.model || ""; const gL = (item.group || "").split(",").map(s => s.trim()); const uL = (item.unit || "").split(",").map(s => s.trim()); const usL = (item.usage || "").split(",").map(s => s.trim()); const uqL = (item.useQty || "").split(",").map(s => s.trim()); fGrp.value = gL[idx] || gL[0] || ""; fUnt.value = uL[idx] || uL[0] || ""; fUsg.value = usL[idx] || usL[0] || ""; fUseQty.value = uqL[idx] || "0"; } fQtyC.classList.add('hidden'); 
             }
             document.getElementById('item-form-modal').classList.remove('hidden');
         };
@@ -525,41 +533,39 @@
 
         window.closeItemForm = () => document.getElementById('item-form-modal').classList.add('hidden');
 
+        // 核心修改 2：儲存與更新「使用量」資料結構
         window.saveItemForm = async () => {
-            const sku = document.getElementById('form-sku').value.trim(); const cat = document.getElementById('form-category').value; const model = document.getElementById('form-model').value.trim(); const group = document.getElementById('form-group').value; const unit = document.getElementById('form-unit').value.trim(); const usage = document.getElementById('form-usage').value.trim();
+            const sku = document.getElementById('form-sku').value.trim(); const cat = document.getElementById('form-category').value; const model = document.getElementById('form-model').value.trim(); const group = document.getElementById('form-group').value; const unit = document.getElementById('form-unit').value.trim(); const usage = document.getElementById('form-usage').value.trim(); const useQtyVal = document.getElementById('form-use-qty').value.trim() || "0";
             if(!sku || !group || !unit || !cat) return window.showToast("⚠️ 必填欄位不完整", false);
+            
             if (window.formMode === 'ADD') {
                 const qty = parseInt(document.getElementById('form-qty').value) || 0; const existing = window.cachedStock.find(i => i.sku === sku);
                 if (existing) {
                     if(confirm(`⚠️ 料號已存在！\n是否將此環境設定為該料號的「共用環境」？`)) {
-                        const gL = existing.group ? existing.group.split(",").map(s=>s.trim()) : []; const uL = existing.unit ? existing.unit.split(",").map(s=>s.trim()) : []; const usL = existing.usage ? existing.usage.split(",").map(s=>s.trim()) : [];
+                        const gL = existing.group ? existing.group.split(",").map(s=>s.trim()) : []; const uL = existing.unit ? existing.unit.split(",").map(s=>s.trim()) : []; const usL = existing.usage ? existing.usage.split(",").map(s=>s.trim()) : []; const uqL = existing.useQty ? existing.useQty.split(",").map(s=>s.trim()) : [];
                         
                         let isExist = false;
-                        const count = Math.max(gL.length, uL.length, usL.length);
+                        const count = Math.max(gL.length, uL.length, usL.length, uqL.length);
                         for(let i=0; i<count; i++) {
-                            const curG = gL[i] !== undefined ? gL[i] : (gL[0]||"");
-                            const curU = uL[i] !== undefined ? uL[i] : (uL[0]||"");
-                            const curUs = usL[i] !== undefined ? usL[i] : (usL[0]||"");
+                            const curG = gL[i] !== undefined ? gL[i] : (gL[0]||""); const curU = uL[i] !== undefined ? uL[i] : (uL[0]||""); const curUs = usL[i] !== undefined ? usL[i] : (usL[0]||"");
                             if (curG === group && curU === unit && curUs === usage) { isExist = true; break; }
                         }
                         if(!isExist) { 
-                            while(gL.length < count) gL.push(gL[0]||"");
-                            while(uL.length < count) uL.push(uL[0]||"");
-                            while(usL.length < count) usL.push(usL[0]||"");
-                            gL.push(group); uL.push(unit); usL.push(usage); 
+                            while(gL.length < count) gL.push(gL[0]||""); while(uL.length < count) uL.push(uL[0]||""); while(usL.length < count) usL.push(usL[0]||""); while(uqL.length < count) uqL.push("0");
+                            gL.push(group); uL.push(unit); usL.push(usage); uqL.push(useQtyVal);
                         }
-                        
-                        try { await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'stock', sku), { ...existing, group: gL.join(", "), unit: uL.join(", "), usage: usL.join(", "), lastOp: window.operatorId }); window.showToast("已新增共用環境", true); window.closeItemForm(); } catch(e) { window.showToast("儲存失敗", false); }
+                        try { await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'stock', sku), { ...existing, group: gL.join(", "), unit: uL.join(", "), usage: usL.join(", "), useQty: uqL.join(", "), lastOp: window.operatorId }); window.showToast("已新增共用環境", true); window.closeItemForm(); } catch(e) { window.showToast("儲存失敗", false); }
                     } return;
                 }
-                try { await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'stock', sku), { sku, group, unit, category: cat, usage, model, qty, lastOp: window.operatorId, time: serverTimestamp() }); window.showToast("新增成功", true); window.closeItemForm(); } catch(e) { window.showToast("儲存失敗", false); }
+                try { await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'stock', sku), { sku, group, unit, category: cat, usage, useQty: useQtyVal, model, qty, lastOp: window.operatorId, time: serverTimestamp() }); window.showToast("新增成功", true); window.closeItemForm(); } catch(e) { window.showToast("儲存失敗", false); }
             } else {
                 const item = window.cachedStock.find(i => i.sku === window.formEditSku); if(!item) return;
-                const gL = item.group ? item.group.split(",").map(s=>s.trim()) : []; const uL = item.unit ? item.unit.split(",").map(s=>s.trim()) : []; const usL = item.usage ? item.usage.split(",").map(s=>s.trim()) : []; const idx = window.formEditIndex;
-                const count = Math.max(gL.length, uL.length, usL.length); 
+                const gL = item.group ? item.group.split(",").map(s=>s.trim()) : []; const uL = item.unit ? item.unit.split(",").map(s=>s.trim()) : []; const usL = item.usage ? item.usage.split(",").map(s=>s.trim()) : []; const uqL = item.useQty ? item.useQty.split(",").map(s=>s.trim()) : []; const idx = window.formEditIndex;
+                const count = Math.max(gL.length, uL.length, usL.length, uqL.length); 
                 if (count > 1 && (item.category !== cat || item.model !== model)) { if(!confirm("⚠️ 變更「類別」或「型號」將會套用到所有共用環境，確定繼續？")) return; }
-                while(gL.length <= idx) gL.push(gL[0]||""); while(uL.length <= idx) uL.push(uL[0]||""); while(usL.length <= idx) usL.push(usL[0]||""); gL[idx] = group; uL[idx] = unit; usL[idx] = usage;
-                try { await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'stock', window.formEditSku), { ...item, group: gL.join(", "), unit: uL.join(", "), usage: usL.join(", "), category: cat, model: model, lastOp: window.operatorId }); window.showToast("修改成功", true); window.closeItemForm(); } catch(e) { window.showToast("修改失敗", false); }
+                while(gL.length <= idx) gL.push(gL[0]||""); while(uL.length <= idx) uL.push(uL[0]||""); while(usL.length <= idx) usL.push(usL[0]||""); while(uqL.length <= idx) uqL.push("0");
+                gL[idx] = group; uL[idx] = unit; usL[idx] = usage; uqL[idx] = useQtyVal;
+                try { await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'stock', window.formEditSku), { ...item, group: gL.join(", "), unit: uL.join(", "), usage: usL.join(", "), useQty: uqL.join(", "), category: cat, model: model, lastOp: window.operatorId }); window.showToast("修改成功", true); window.closeItemForm(); } catch(e) { window.showToast("修改失敗", false); }
             }
         };
 
@@ -627,15 +633,15 @@
             const it = window.cachedStock.find(i => i.sku === sku); if (!it) return;
             const gL = (it.group || "").split(",").map(s => s.trim()).filter(Boolean); const uL = (it.unit || "").split(",").map(s => s.trim()).filter(Boolean); const usL = (it.usage || "").split(",").map(s => s.trim());
             const count = Math.max(gL.length, uL.length);
-            if (count > 1) window.showContextPicker(it, gL, uL, usL, 'DELETE');
+            if (count > 1) window.showContextPicker(it, gL, uL, usL, (it.useQty || "").split(","), 'DELETE');
             else { if (confirm(`徹底刪除料號 ${sku}？`)) { try { await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'stock', sku)); window.showToast("已徹底刪除", true); } catch (e) { window.showToast("刪除失敗", false); } } }
         };
         window.executePartialDelete = async (sku, idx) => {
             if (!confirm("確定移除此環境關聯？")) return;
             const item = window.cachedStock.find(i => i.sku === sku); if(!item) return;
-            const gL = (item.group || "").split(",").map(s => s.trim()); const uL = (item.unit || "").split(",").map(s => s.trim()); const usL = (item.usage || "").split(",").map(s => s.trim());
-            gL.splice(idx, 1); uL.splice(idx, 1); if (usL.length > idx) usL.splice(idx, 1);
-            try { await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'stock', sku), { ...item, group: gL.join(", "), unit: uL.join(", "), usage: usL.join(", "), lastOp: `${window.operatorId}(移除環境)` }); window.showToast("已移除環境", true); window.closeContextPicker(); } catch (e) { window.showToast("移除失敗", false); }
+            const gL = (item.group || "").split(",").map(s => s.trim()); const uL = (item.unit || "").split(",").map(s => s.trim()); const usL = (item.usage || "").split(",").map(s => s.trim()); const uqL = (item.useQty || "").split(",").map(s => s.trim());
+            gL.splice(idx, 1); uL.splice(idx, 1); if (usL.length > idx) usL.splice(idx, 1); if (uqL.length > idx) uqL.splice(idx, 1);
+            try { await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'stock', sku), { ...item, group: gL.join(", "), unit: uL.join(", "), usage: usL.join(", "), useQty: uqL.join(", "), lastOp: `${window.operatorId}(移除環境)` }); window.showToast("已移除環境", true); window.closeContextPicker(); } catch (e) { window.showToast("移除失敗", false); }
         };
         window.executeFullDeleteFromPicker = async () => { if(confirm("警告：徹底刪除整個料號及所有環境設定！確定刪除？")) { try { await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'stock', window.activePickerSku)); window.showToast("已徹底刪除", true); window.closeContextPicker(); } catch (e) { window.showToast("刪除失敗", false); } } };
 
@@ -667,6 +673,7 @@
             if(confirm(`移除管理員 ${n}？`)) await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'admins', 'all'), { list: window.adminList.filter(x => x !== n) });
         };
 
+        // 核心修改：匯入邏輯增加可選填的第 8 欄位 (使用量)
         window.processPastedText = async () => {
             const input = document.getElementById('import-text-area'); const txt = input.value.trim(); if (!txt) return window.showToast("請貼入內容", false);
             const rows = txt.split(/\r?\n/).filter(r => r.trim() !== ""); const batch = writeBatch(db); const stockMap = new Map(); window.cachedStock.forEach(i => stockMap.set(i.sku, { ...i }));
@@ -674,20 +681,24 @@
                 let sT = (rows[0].includes("機群") || rows[0].includes("料號")) ? 1 : 0; let updateCount = 0;
                 for (let i = sT; i < rows.length; i++) {
                     const c = rows[i].split(",").map(s => s.trim().replace(/^"|"$/g, "")); if (c.length < 5) continue;
-                    const [g, u, cat, us, sku, qtyS, model] = c; if (!sku) continue; const parsedQty = parseInt(qtyS) || 0;
+                    const [g, u, cat, us, sku, qtyS, model, useQtyS] = c; if (!sku) continue; const parsedQty = parseInt(qtyS) || 0; const parsedUseQty = useQtyS || "0";
                     if (stockMap.has(sku)) {
-                        const item = stockMap.get(sku); const gL = item.group ? item.group.split(",").map(s => s.trim()) : []; const uL = item.unit ? item.unit.split(",").map(s => s.trim()) : []; const usL = item.usage ? item.usage.split(",").map(s => s.trim()) : [];
-                        let envExists = false; const count = Math.max(gL.length, uL.length, usL.length);
+                        const item = stockMap.get(sku); const gL = item.group ? item.group.split(",").map(s => s.trim()) : []; const uL = item.unit ? item.unit.split(",").map(s => s.trim()) : []; const usL = item.usage ? item.usage.split(",").map(s => s.trim()) : []; const uqL = item.useQty ? item.useQty.split(",").map(s => s.trim()) : [];
+                        let envExists = false; const count = Math.max(gL.length, uL.length, usL.length, uqL.length);
                         for(let j=0; j<count; j++) { const curG = gL[j] !== undefined ? gL[j] : (gL[0]||""); const curU = uL[j] !== undefined ? uL[j] : (uL[0]||""); const curUs = usL[j] !== undefined ? usL[j] : (usL[0]||""); if (curG === g && curU === u && curUs === (us||"")) { envExists = true; break; } }
-                        if (!envExists) { if(count === 0) { gL.push(g); uL.push(u); usL.push(us||""); } else { while(gL.length < count) gL.push(gL[0]||""); while(uL.length < count) uL.push(uL[0]||""); while(usL.length < count) usL.push(usL[0]||""); gL.push(g); uL.push(u); usL.push(us||""); } item.group = gL.join(", "); item.unit = uL.join(", "); item.usage = usL.join(", "); item.lastOp = window.operatorId + "(匯入環境)"; item.time = serverTimestamp(); if(!item.category && cat) item.category = cat; if(!item.model && model) item.model = model; stockMap.set(sku, item); batch.set(doc(db, 'artifacts', appId, 'public', 'data', 'stock', sku), item); updateCount++; }
-                    } else { const newItem = { sku, group: g, unit: u, category: cat || "其他", usage: us || "", qty: parsedQty, model: model || "", lastOp: window.operatorId + "(匯入)", time: serverTimestamp() }; stockMap.set(sku, newItem); batch.set(doc(db, 'artifacts', appId, 'public', 'data', 'stock', sku), newItem); updateCount++; }
+                        if (!envExists) { if(count === 0) { gL.push(g); uL.push(u); usL.push(us||""); uqL.push(parsedUseQty); } else { while(gL.length < count) gL.push(gL[0]||""); while(uL.length < count) uL.push(uL[0]||""); while(usL.length < count) usL.push(usL[0]||""); while(uqL.length < count) uqL.push("0"); gL.push(g); uL.push(u); usL.push(us||""); uqL.push(parsedUseQty); } item.group = gL.join(", "); item.unit = uL.join(", "); item.usage = usL.join(", "); item.useQty = uqL.join(", "); item.lastOp = window.operatorId + "(匯入環境)"; item.time = serverTimestamp(); if(!item.category && cat) item.category = cat; if(!item.model && model) item.model = model; stockMap.set(sku, item); batch.set(doc(db, 'artifacts', appId, 'public', 'data', 'stock', sku), item); updateCount++; }
+                    } else { const newItem = { sku, group: g, unit: u, category: cat || "其他", usage: us || "", useQty: parsedUseQty, qty: parsedQty, model: model || "", lastOp: window.operatorId + "(匯入)", time: serverTimestamp() }; stockMap.set(sku, newItem); batch.set(doc(db, 'artifacts', appId, 'public', 'data', 'stock', sku), newItem); updateCount++; }
                 }
                 if(updateCount > 0) { await batch.commit(); window.showToast(`匯入/更新 ${updateCount} 筆`, true); } else { window.showToast("資料已存在，無更新", true); }
                 input.value = ""; window.closeImportModal();
             } catch (e) { window.showToast("解析出錯", false); }
         };
 
-        window.exportAndShareStock = () => { const ws = XLSX.utils.json_to_sheet(window.cachedStock.map(i => ({ "機群": i.group, "Unit": i.unit, "類別": i.category, "用途": i.usage, "型號": i.model, "料號": i.sku, "現量": i.qty }))); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "庫存"); XLSX.writeFile(wb, "線邊倉報表.xlsx"); };
+        window.exportAndShareStock = () => { const ws = XLSX.utils.json_to_sheet(window.cachedStock.map(i => {
+            const uqL = (i.useQty || "").split(",").map(s => parseInt(s.trim()) || 0); const totalSafetyStock = uqL.reduce((sum, val) => sum + val, 0);
+            return { "機群": i.group, "Unit": i.unit, "類別": i.category, "用途": i.usage, "型號": i.model, "料號": i.sku, "現量": i.qty, "安全水位": totalSafetyStock };
+        }))); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "庫存"); XLSX.writeFile(wb, "線邊倉報表.xlsx"); };
+        
         window.startScanner = async () => { document.getElementById('scanner-view').classList.remove('hidden'); window.html5QrCode = new Html5Qrcode("reader"); await window.html5QrCode.start({ facingMode: "environment" }, { fps: 25, qrbox: { width: 280, height: 120 } }, (t) => { document.getElementById('action-search').value = t; window.stopScanner(); window.onActionSearch(t); }); };
         window.stopScanner = () => { if(window.html5QrCode) window.html5QrCode.stop().then(() => document.getElementById('scanner-view').classList.add('hidden')); };
 
