@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>線邊倉助手 V3.3.2</title>
+    <title>線邊倉助手 V3.4.1</title>
     <script src="https://cdn.jsdelivr.net/npm/eruda"></script><script>eruda.init();</script>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
@@ -38,7 +38,7 @@
         <div class="flex items-center gap-2">
             <div class="flex flex-col text-left">
                 <span id="admin-badge" class="hidden text-[8px] font-black bg-amber-500 text-white px-1.5 py-0.5 rounded-full w-fit mb-0.5 uppercase shadow-sm">管理模式</span>
-                <span class="text-[10px] font-black text-slate-400 uppercase tracking-tighter">線邊倉助手 V3.3.2</span>
+                <span class="text-[10px] font-black text-slate-400 uppercase tracking-tighter">線邊倉助手 V3.4.1</span>
                 <span id="display-operator" class="text-sm font-bold text-slate-700 font-mono tracking-tight leading-none text-left">載入中...</span>
             </div>
         </div>
@@ -200,8 +200,11 @@
     <div id="import-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[2000] hidden flex items-center justify-center p-6 text-left" onclick="window.closeImportModal()">
         <div class="bg-white w-full max-w-md rounded-3xl p-6 space-y-4 shadow-2xl text-left" onclick="event.stopPropagation()">
             <h3 class="text-xl font-black">智慧文字匯入</h3>
-            <p class="text-[10px] text-slate-400 mt-1 leading-relaxed">新格式：機群,Unit,類別,位置,料號,數量,型號,單機用量,交期天數<br>(若舊版資料沒有後兩欄，系統會預設用量1、交期30天)</p>
-            <textarea id="import-text-area" placeholder="CSCR,PC,CYLINDER,Clamp,SKU,0,MODEL,2,60" class="w-full h-48 bg-slate-50 border-2 border-dashed rounded-xl p-3 text-xs font-mono outline-none"></textarea>
+            <p class="text-[10px] text-slate-500 mt-1 leading-relaxed">
+                強烈建議<strong class="text-amber-600">連同表頭（第一行）一起複製</strong>，系統將自動精準識別欄位！<br>
+                支援的表頭：<span class="text-blue-500 font-bold">機群, Unit名稱, 類別, 用途, 料號, 當前庫存量, 型號, 單機用量, 交期天數</span>
+            </p>
+            <textarea id="import-text-area" placeholder="機群&#9;Unit名稱&#9;類別&#9;用途&#9;料號&#9;當前庫存量&#9;型號&#9;單機用量&#9;交期天數&#10;CSCR&#9;PC&#9;CYLINDER&#9;Clamp&#9;SKU123&#9;0&#9;ModelX&#9;2&#9;60" class="w-full h-48 bg-slate-50 border-2 border-dashed rounded-xl p-3 text-xs font-mono outline-none whitespace-pre"></textarea>
             <div class="flex gap-3 text-center"><button onclick="window.closeImportModal()" class="flex-1 py-3 bg-slate-100 rounded-xl font-bold text-slate-500">取消</button><button onclick="window.processPastedText()" class="flex-1 py-3 bg-blue-600 text-white rounded-xl font-bold">匯入更新</button></div>
         </div>
     </div>
@@ -474,9 +477,24 @@
         window.onFilterUnitChange = () => { window.updateCategoryDropdown(); window.applyFilters(); };
         window.resetStockFilters = () => { document.getElementById('filter-group').selectedIndex = 0; window.updateUnitDropdown(); document.getElementById('filter-unit').selectedIndex = 0; window.updateCategoryDropdown(); document.getElementById('filter-category').selectedIndex = 0; document.getElementById('filter-usage').value = ""; window.applyFilters(); };
 
+        // --- 核心更新：年化月均耗量與安全水位計算 ---
         window.renderStockList = (data) => {
             const list = document.getElementById('stock-list'); if (!list) return;
             if (!data.length) return list.innerHTML = '<div class="py-20 text-slate-300 text-xs text-center uppercase">無匹配資料</div>';
+
+            const now = Date.now();
+            const oneYearAgo = now - (365 * 24 * 60 * 60 * 1000);
+            
+            // 計算系統資料的歷史跨度(月)，最多12個月，最少1個月(避免除以0)
+            let oldestLogTime = now;
+            (window.cachedHistory || []).forEach(log => {
+                if (log.timestamp) {
+                    const t = log.timestamp.toMillis();
+                    if (t >= oneYearAgo && t < oldestLogTime) oldestLogTime = t;
+                }
+            });
+            const dataMonthsSpan = Math.max(1, (now - oldestLogTime) / (30.44 * 24 * 60 * 60 * 1000));
+
             list.innerHTML = data.map(i => {
                 const gL = (i.group || "").split(",").map(s => s.trim()).filter(Boolean); 
                 const uL = (i.unit || "").split(",").map(s => s.trim()).filter(Boolean);
@@ -488,24 +506,32 @@
                     totalInstalled += parseInt(eqL[j] || 1);
                 }
 
-                const now = Date.now();
-                const thirtyDaysAgo = now - (30 * 24 * 60 * 60 * 1000);
-                let historyMonthlyOut = 0;
+                // 計算過去 365 天的總出庫量
+                let historyYearlyOut = 0;
                 (window.cachedHistory || []).forEach(log => {
                     if (log.sku === i.sku && log.type === 'OUT' && log.timestamp) {
-                        if (log.timestamp.toMillis() >= thirtyDaysAgo) {
-                            historyMonthlyOut += (parseInt(log.change) || 0);
+                        if (log.timestamp.toMillis() >= oneYearAgo) {
+                            historyYearlyOut += (parseInt(log.change) || 0);
                         }
                     }
                 });
 
-                let dynamicMonthlyConsumption = Math.max(historyMonthlyOut, Math.ceil(totalInstalled * 0.1));
+                // 真實月均耗量 = 年出庫總量 / 收集資料的月數
+                let actualMonthlyOut = historyYearlyOut / dataMonthsSpan;
+                
+                // 動態月耗量：以實際月均耗量為主，若完全沒動靜，則以總安裝量 10% 作為保底
+                let dynamicMonthlyConsumption = Math.max(actualMonthlyOut, totalInstalled * 0.1);
+                
+                // 為了顯示美觀，將數值四捨五入到小數點後兩位
+                let displayMonthlyOut = (Math.round(dynamicMonthlyConsumption * 100) / 100);
+
                 const leadTimeDays = parseInt(i.leadTime) || 30;
-                let safeStock = Math.max(1, Math.ceil(dynamicMonthlyConsumption * (leadTimeDays / 30)));
+                // 安全水位 = 動態月耗量 * (交期天數 / 30天)，無條件進位
+                let safeStock = Math.max(1, Math.ceil(dynamicMonthlyConsumption * (leadTimeDays / 30.44)));
                 const isLowStock = i.qty < safeStock;
                 
                 const cardClass = isLowStock ? "bg-red-50 border-red-300 shadow-md" : "bg-white border-slate-100 shadow-sm";
-                const alertBadge = isLowStock ? `<div class="text-[10px] font-black text-red-600 bg-red-100 px-1.5 py-0.5 rounded flex items-center gap-1 mb-1.5 w-fit"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0zM12 9v4M12 17h.01"/></svg>庫存警戒 (水位: ${safeStock} | 動態月耗: ${dynamicMonthlyConsumption})</div>` : '';
+                const alertBadge = isLowStock ? `<div class="text-[10px] font-black text-red-600 bg-red-100 px-1.5 py-0.5 rounded flex items-center gap-1 mb-1.5 w-fit"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0zM12 9v4M12 17h.01"/></svg>庫存警戒 (水位: ${safeStock} | 月均耗量: ${displayMonthlyOut})</div>` : '';
 
                 const b = uL.map((u, idx) => `<span class="unit-badge">${(gL[idx] || gL[0])}_${u}</span>`).join('');
                 
@@ -732,7 +758,6 @@
         window.addAdmin = async () => { const i = document.getElementById('new-admin-id'); const v = i.value.trim(); if(!v) return; if(!/^\d{8}$/.test(v) && v !== 'Admin') return window.showToast("工號必須為 8 碼數字", false); try { await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'admins', 'all'), { list: [...new Set([...window.adminList, v])] }); i.value = ""; window.showToast("已新增管理員", true); } catch(e) {} };
         window.removeAdmin = async (n) => { if(n === 'Admin') return window.showToast("無法移除預設 Admin", false); if(confirm(`移除管理員 ${n}？`)) await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'admins', 'all'), { list: window.adminList.filter(x => x !== n) }); };
 
-        // --- 核心更新：非同步佇列處理與動態審核 ---
         window.processPastedText = async () => {
             const input = document.getElementById('import-text-area'); 
             const txt = input.value.trim(); 
@@ -741,23 +766,53 @@
             
             window.importBatch = writeBatch(db); 
             window.importStockMap = new Map(); 
-            window.cachedStock.forEach(i => window.importStockMap.set(i.sku, JSON.parse(JSON.stringify(i)))); // Deep copy
+            window.cachedStock.forEach(i => window.importStockMap.set(i.sku, JSON.parse(JSON.stringify(i)))); 
             window.importUpdateCount = 0;
             window.pendingImports = [];
 
-            let sT = (rows[0].includes("機群") || rows[0].includes("料號")) ? 1 : 0; 
+            const separator = rows[0].includes('\t') ? '\t' : ',';
+            const firstRow = rows[0].split(separator).map(s => s.trim().replace(/^"|"$/g, ""));
+
+            let sT = 0;
+            let colMap = { g: 0, u: 1, cat: 2, us: 3, sku: 4, qty: 5, model: 6, envQty: 7, leadTime: 8 };
+
+            if (firstRow.some(h => h.includes("料號") || h.includes("SKU") || h.includes("機群"))) {
+                sT = 1;
+                colMap.g = firstRow.findIndex(h => h.includes("機群") || h.includes("Group"));
+                colMap.u = firstRow.findIndex(h => h.toLowerCase().includes("unit") || h.includes("Unit名稱"));
+                colMap.cat = firstRow.findIndex(h => h.includes("類別"));
+                colMap.us = firstRow.findIndex(h => h.includes("用途") || h.includes("位置"));
+                colMap.sku = firstRow.findIndex(h => h.includes("料號") || h.includes("SKU"));
+                colMap.qty = firstRow.findIndex(h => h.includes("數量") || h.includes("庫存"));
+                colMap.model = firstRow.findIndex(h => h.includes("型號"));
+                colMap.envQty = firstRow.findIndex(h => h.includes("用量"));
+                colMap.leadTime = firstRow.findIndex(h => h.includes("交期") || h.includes("天數"));
+            }
+
             for (let i = sT; i < rows.length; i++) {
-                const c = rows[i].split(",").map(s => s.trim().replace(/^"|"$/g, "")); 
-                if (c.length < 5) continue;
-                
-                const [g, u, cat, us, sku, qtyS, model, envQtyS, leadTimeS] = c; 
+                const c = rows[i].split(separator).map(s => s.trim().replace(/^"|"$/g, "")); 
+                const sku = colMap.sku !== -1 ? c[colMap.sku] : c[4];
                 if (!sku) continue; 
                 
+                const gVal = colMap.g !== -1 ? c[colMap.g] : c[0];
+                const uVal = colMap.u !== -1 ? c[colMap.u] : c[1];
+                const catVal = colMap.cat !== -1 ? c[colMap.cat] : c[2];
+                const usVal = colMap.us !== -1 ? c[colMap.us] : c[3];
+                const qtyVal = colMap.qty !== -1 ? c[colMap.qty] : c[5];
+                const modelVal = colMap.model !== -1 ? c[colMap.model] : c[6];
+                const envQtyVal = colMap.envQty !== -1 ? c[colMap.envQty] : c[7];
+                const leadTimeVal = colMap.leadTime !== -1 ? c[colMap.leadTime] : c[8];
+                
                 window.pendingImports.push({
-                    g, u, cat: cat || "未分類", us: us || "", sku, 
-                    qty: parseInt(qtyS) || 0, model: model || "", 
-                    envQty: (envQtyS && envQtyS !== "") ? (parseInt(envQtyS) || 1).toString() : "1",
-                    leadTime: (leadTimeS && leadTimeS !== "") ? (parseInt(leadTimeS) || 30) : 30
+                    g: gVal, 
+                    u: uVal, 
+                    cat: catVal || "未分類", 
+                    us: usVal || "", 
+                    sku: sku, 
+                    qty: parseInt(qtyVal) || 0, 
+                    model: modelVal || "", 
+                    envQty: (envQtyVal && envQtyVal !== "") ? (parseInt(envQtyVal) || 1).toString() : "1",
+                    leadTime: (leadTimeVal && leadTimeVal !== "") ? (parseInt(leadTimeVal) || 30) : 30
                 });
             }
 
@@ -793,37 +848,41 @@
                 const usL = item.usage ? item.usage.split(",").map(s => s.trim()) : [];
                 const eqL = item.envQty ? item.envQty.split(",").map(s => s.trim()) : [];
                 
-                let envExists = false; 
-                let conflictFound = false;
-                let conflictDetails = null;
+                const oldCat = item.category || "未分類";
+                const newCat = cat;
+                const oldLeadTime = parseInt(item.leadTime) || 30;
+                const newLeadTime = parseInt(leadTime) || 30;
 
                 const count = Math.max(gL.length, uL.length, usL.length);
+                let targetIdx = -1;
                 for(let j=0; j<count; j++) { 
                     const curG = gL[j] !== undefined ? gL[j] : (gL[0]||""); 
                     const curU = uL[j] !== undefined ? uL[j] : (uL[0]||""); 
                     const curUs = usL[j] !== undefined ? usL[j] : (usL[0]||""); 
-                    const curEq = eqL[j] !== undefined ? eqL[j] : (eqL[0]||"1");
-
                     if (curG === g && curU === u && curUs === us) { 
-                        envExists = true; 
-                        
-                        const oldCat = item.category || "未分類";
-                        const newCat = cat;
-                        const oldLeadTime = parseInt(item.leadTime) || 30;
-                        const newLeadTime = parseInt(leadTime) || 30;
-                        const oldEq = parseInt(curEq) || 1;
-                        const newEq = parseInt(envQty) || 1;
-
-                        if (oldCat !== newCat || oldLeadTime !== newLeadTime || oldEq !== newEq) {
-                            conflictFound = true;
-                            conflictDetails = { oldCat, newCat, oldLeadTime, newLeadTime, oldEq, newEq };
-                        }
-                        break; 
+                        targetIdx = j; break; 
                     } 
                 }
                 
+                let conflictFound = false;
+                let conflictDetails = { oldCat, newCat, oldLeadTime, newLeadTime };
+                let envExists = (targetIdx !== -1);
+
+                if (oldCat !== newCat || oldLeadTime !== newLeadTime) {
+                    conflictFound = true;
+                }
+
+                if (envExists) {
+                    const oldEq = parseInt(eqL[targetIdx]) || 1;
+                    const newEq = parseInt(envQty) || 1;
+                    if (oldEq !== newEq) {
+                        conflictFound = true;
+                        conflictDetails.oldEq = oldEq;
+                        conflictDetails.newEq = newEq;
+                    }
+                }
+                
                 if (conflictFound) {
-                    // 暫停佇列，顯示對比彈窗
                     const detailHtml = `
                         <div class="mb-2"><span class="font-bold text-slate-700">料號:</span> <span class="font-mono text-blue-600 font-black">${sku}</span></div>
                         <div class="mb-3"><span class="font-bold text-slate-700">環境:</span> <span class="font-mono text-xs bg-slate-100 px-2 py-1 rounded">${g} > ${u} > ${us||'無'}</span></div>
@@ -834,38 +893,30 @@
                             <div class="text-amber-600">匯入新值</div>
                         </div>
                         ${conflictDetails.oldCat !== conflictDetails.newCat ? `<div class="grid grid-cols-3 gap-2 text-center text-[11px] items-center border-b border-slate-100 py-1.5"><div class="text-left font-bold text-slate-600">類別</div><div class="bg-slate-100 rounded py-1 truncate">${conflictDetails.oldCat}</div><div class="bg-amber-100 text-amber-700 rounded py-1 truncate font-black">${conflictDetails.newCat}</div></div>` : ''}
-                        ${conflictDetails.oldEq !== conflictDetails.newEq ? `<div class="grid grid-cols-3 gap-2 text-center text-[11px] items-center border-b border-slate-100 py-1.5"><div class="text-left font-bold text-slate-600">單機用量</div><div class="bg-slate-100 rounded py-1">${conflictDetails.oldEq}</div><div class="bg-amber-100 text-amber-700 rounded py-1 font-black">${conflictDetails.newEq}</div></div>` : ''}
-                        ${conflictDetails.oldLeadTime !== conflictDetails.newLeadTime ? `<div class="grid grid-cols-3 gap-2 text-center text-[11px] items-center py-1.5"><div class="text-left font-bold text-slate-600">交期(天)</div><div class="bg-slate-100 rounded py-1">${conflictDetails.oldLeadTime}</div><div class="bg-amber-100 text-amber-700 rounded py-1 font-black">${conflictDetails.newLeadTime}</div></div>` : ''}
+                        ${conflictDetails.oldLeadTime !== conflictDetails.newLeadTime ? `<div class="grid grid-cols-3 gap-2 text-center text-[11px] items-center border-b border-slate-100 py-1.5"><div class="text-left font-bold text-slate-600">交期(天)</div><div class="bg-slate-100 rounded py-1">${conflictDetails.oldLeadTime}</div><div class="bg-amber-100 text-amber-700 rounded py-1 font-black">${conflictDetails.newLeadTime}</div></div>` : ''}
+                        ${conflictDetails.oldEq !== undefined && conflictDetails.oldEq !== conflictDetails.newEq ? `<div class="grid grid-cols-3 gap-2 text-center text-[11px] items-center py-1.5"><div class="text-left font-bold text-slate-600">單機用量</div><div class="bg-slate-100 rounded py-1">${conflictDetails.oldEq}</div><div class="bg-amber-100 text-amber-700 rounded py-1 font-black">${conflictDetails.newEq}</div></div>` : ''}
                     `;
                     document.getElementById('import-conflict-details').innerHTML = detailHtml;
                     document.getElementById('import-conflict-modal').classList.remove('hidden');
-                    return; // 等待使用者點擊按鈕
-                } else if (!envExists) { 
-                    if(count === 0) { 
-                        gL.push(g); uL.push(u); usL.push(us); eqL.push(envQty); 
-                    } else { 
+                    return; 
+                } else {
+                    if (!envExists) { 
                         while(gL.length < count) gL.push(gL[0]||""); 
                         while(uL.length < count) uL.push(uL[0]||""); 
                         while(usL.length < count) usL.push(usL[0]||""); 
                         while(eqL.length < count) eqL.push(eqL[0]||"1");
                         gL.push(g); uL.push(u); usL.push(us); eqL.push(envQty);
-                    } 
-                    
-                    item.group = gL.join(", "); item.unit = uL.join(", "); item.usage = usL.join(", "); item.envQty = eqL.join(", "); 
-                    item.lastOp = window.operatorId + "(匯入環境)"; item.time = serverTimestamp(); 
-                    if(!item.category && cat) item.category = cat; 
-                    if(!item.model && model) item.model = model; 
-                    if(!item.leadTime) item.leadTime = leadTime;
-
-                    window.importStockMap.set(sku, item); 
-                    window.importBatch.set(doc(db, 'artifacts', appId, 'public', 'data', 'stock', sku), item); 
-                    window.importUpdateCount++; 
+                        
+                        item.group = gL.join(", "); item.unit = uL.join(", "); item.usage = usL.join(", "); item.envQty = eqL.join(", "); 
+                        item.lastOp = window.operatorId + "(匯入環境)"; item.time = serverTimestamp(); 
+                        
+                        window.importStockMap.set(sku, item); 
+                        window.importBatch.set(doc(db, 'artifacts', appId, 'public', 'data', 'stock', sku), item); 
+                        window.importUpdateCount++; 
+                    }
+                    window.processNextImportRow();
                 }
-                // 若 envExists 且無衝突，直接跳過不更新，前往下一筆
-                window.processNextImportRow();
-
             } else { 
-                // 全新料號
                 const newItem = { sku, group: g, unit: u, category: cat, usage: us, qty: qty, model: model, envQty: envQty, leadTime: leadTime, lastOp: window.operatorId + "(匯入)", time: serverTimestamp() }; 
                 window.importStockMap.set(sku, newItem); 
                 window.importBatch.set(doc(db, 'artifacts', appId, 'public', 'data', 'stock', sku), newItem); 
@@ -877,38 +928,63 @@
         window.resolveImportConflict = (action) => {
             document.getElementById('import-conflict-modal').classList.add('hidden');
             
-            if (action === 'OVERWRITE') {
-                const row = window.currentRowContext;
-                const item = window.importStockMap.get(row.sku);
-                
-                const gL = item.group.split(",").map(s => s.trim());
-                const uL = item.unit.split(",").map(s => s.trim());
-                const usL = item.usage ? item.usage.split(",").map(s => s.trim()) : [];
-                const eqL = item.envQty ? item.envQty.split(",").map(s => s.trim()) : [];
-                
-                const count = Math.max(gL.length, uL.length, usL.length);
-                let targetIdx = -1;
-                for (let j = 0; j < count; j++) {
-                    if ((gL[j]||gL[0]||"") === row.g && (uL[j]||uL[0]||"") === row.u && (usL[j]||usL[0]||"") === row.us) {
-                        targetIdx = j; break;
-                    }
+            const row = window.currentRowContext;
+            const item = window.importStockMap.get(row.sku);
+            
+            const gL = item.group.split(",").map(s => s.trim());
+            const uL = item.unit.split(",").map(s => s.trim());
+            const usL = item.usage ? item.usage.split(",").map(s => s.trim()) : [];
+            const eqL = item.envQty ? item.envQty.split(",").map(s => s.trim()) : [];
+            
+            const count = Math.max(gL.length, uL.length, usL.length);
+            let targetIdx = -1;
+            for (let j = 0; j < count; j++) {
+                if ((gL[j]||gL[0]||"") === row.g && (uL[j]||uL[0]||"") === row.u && (usL[j]||usL[0]||"") === row.us) {
+                    targetIdx = j; break;
                 }
-                
+            }
+
+            if (action === 'OVERWRITE') {
                 if (targetIdx !== -1) {
                     while(eqL.length < count) eqL.push(eqL[0]||"1");
                     eqL[targetIdx] = row.envQty;
                     item.envQty = eqL.join(", ");
-                    item.category = row.cat;
-                    item.leadTime = row.leadTime;
-                    item.lastOp = window.operatorId + "(匯入更新)";
-                    item.time = serverTimestamp();
+                } else {
+                    while(gL.length < count) gL.push(gL[0]||""); 
+                    while(uL.length < count) uL.push(uL[0]||""); 
+                    while(usL.length < count) usL.push(usL[0]||""); 
+                    while(eqL.length < count) eqL.push(eqL[0]||"1");
+                    gL.push(row.g); uL.push(row.u); usL.push(row.us); eqL.push(row.envQty);
+                    item.group = gL.join(", "); item.unit = uL.join(", "); item.usage = usL.join(", "); item.envQty = eqL.join(", ");
+                }
+                
+                item.category = row.cat;
+                item.leadTime = row.leadTime;
+                if(row.model) item.model = row.model;
+                item.lastOp = window.operatorId + "(匯入更新)";
+                item.time = serverTimestamp();
+                
+                window.importStockMap.set(row.sku, item);
+                window.importBatch.set(doc(db, 'artifacts', appId, 'public', 'data', 'stock', row.sku), item);
+                window.importUpdateCount++;
+                
+            } else if (action === 'SKIP') {
+                if (targetIdx === -1) {
+                    while(gL.length < count) gL.push(gL[0]||""); 
+                    while(uL.length < count) uL.push(uL[0]||""); 
+                    while(usL.length < count) usL.push(usL[0]||""); 
+                    while(eqL.length < count) eqL.push(eqL[0]||"1");
+                    gL.push(row.g); uL.push(row.u); usL.push(row.us); eqL.push(row.envQty);
+                    item.group = gL.join(", "); item.unit = uL.join(", "); item.usage = usL.join(", "); item.envQty = eqL.join(", ");
                     
+                    item.lastOp = window.operatorId + "(匯入新增環境)";
+                    item.time = serverTimestamp();
                     window.importStockMap.set(row.sku, item);
                     window.importBatch.set(doc(db, 'artifacts', appId, 'public', 'data', 'stock', row.sku), item);
                     window.importUpdateCount++;
                 }
             }
-            // 處理下一筆
+            
             window.processNextImportRow();
         };
 
@@ -923,19 +999,19 @@
                 const count = Math.max(gL.length, uL.length, usL.length);
                 if (count <= 1) {
                     exportData.push({ 
-                        "機群": gL[0] || "", "Unit": uL[0] || "", "類別": i.category || "未分類", 
-                        "位置": usL[0] || "", "料號": i.sku, "數量": i.qty, 
+                        "機群": gL[0] || "", "Unit名稱": uL[0] || "", "類別": i.category || "未分類", 
+                        "用途": usL[0] || "", "料號": i.sku, "當前庫存量": i.qty, 
                         "型號": i.model || "", "單機用量": eqL[0] || "1", "交期天數": i.leadTime || 30 
                     });
                 } else {
                     for(let j=0; j<count; j++) {
                         exportData.push({
                             "機群": gL[j] !== undefined ? gL[j] : (gL[0]||""),
-                            "Unit": uL[j] !== undefined ? uL[j] : (uL[0]||""),
+                            "Unit名稱": uL[j] !== undefined ? uL[j] : (uL[0]||""),
                             "類別": i.category || "未分類",
-                            "位置": usL[j] !== undefined ? usL[j] : (usL[0]||""),
+                            "用途": usL[j] !== undefined ? usL[j] : (usL[0]||""),
                             "料號": i.sku,
-                            "數量": i.qty,
+                            "當前庫存量": i.qty,
                             "型號": i.model || "",
                             "單機用量": eqL[j] !== undefined ? eqL[j] : (eqL[0]||"1"),
                             "交期天數": i.leadTime || 30
