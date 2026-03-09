@@ -651,7 +651,7 @@
 
         window.clickStockItem = (sku) => {
             const it = window.cachedStock.find(i => i.sku === sku); if (!it) return;
-            const gL = (it.group || "").split(",").map(s => s.trim()).filter(Boolean); uL = (it.unit || "").split(",").map(s => s.trim()).filter(Boolean); usL = (it.usage || "").split(",").map(s => s.trim()); eqL = (it.envQty || "").split(",").map(s => s.trim()); 
+            const gL = (it.group || "").split(",").map(s => s.trim()).filter(Boolean); const uL = (it.unit || "").split(",").map(s => s.trim()).filter(Boolean); const usL = (it.usage || "").split(",").map(s => s.trim()); const eqL = (it.envQty || "").split(",").map(s => s.trim()); 
             if (Math.max(gL.length, uL.length, usL.length) > 1) window.showContextPicker(it, gL, uL, usL, eqL, 'EDIT'); else window.openItemForm('EDIT', sku, 0);
         };
 
