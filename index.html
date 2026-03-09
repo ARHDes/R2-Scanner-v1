@@ -680,7 +680,8 @@
             if (!logs.length) return list.innerHTML = '<div class="py-20 text-slate-300 text-xs text-center uppercase">無符合條件紀錄</div>';
             list.innerHTML = logs.map(l => {
                 const tc = l.type === 'IN' ? 'text-blue-500' : (l.type === 'OUT' ? 'text-orange-500' : 'text-emerald-500');
-                let qd = `${l.type} ${l.change}`; if (l.type === 'COUNT' && l.diff !== undefined) qd = `盤點: ${l.after} (差: ${l.diff > 0 ? '+' : ''}${l.diff})`;
+                let qd = `${l.type} ${l.change} (剩:${l.after !== undefined ? l.after : '?'})`; 
+                if (l.type === 'COUNT' && l.diff !== undefined) qd = `盤點: ${l.after} (差: ${l.diff > 0 ? '+' : ''}${l.diff})`;
                 return `<div class="bg-white p-4 rounded-2xl border shadow-sm text-[10px] space-y-1 mb-2 text-left">
                     <div class="flex justify-between items-start"><div class="font-black text-slate-800 font-mono text-sm">${l.sku}</div><div class="font-black ${tc} uppercase">${qd}</div></div>
                     <div class="text-slate-400">👤 ${l.op} • ${l.timestamp ? new Date(l.timestamp.toMillis()).toLocaleString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false }) : ''}</div>
