@@ -151,6 +151,18 @@
         </div>
     </main>
 
+    <!-- 彈窗：庫存點擊功能選擇 (New) -->
+    <div id="stock-action-choice-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[4700] hidden flex items-center justify-center p-6 text-center" onclick="window.closeStockActionChoice()">
+        <div class="bg-white w-full max-w-sm rounded-3xl p-6 space-y-4 shadow-2xl text-left" onclick="event.stopPropagation()">
+            <div class="text-center font-black mb-2"><h3 class="text-lg text-slate-800" id="stock-choice-title">選擇操作</h3></div>
+            <div class="grid grid-cols-1 gap-3">
+                <button onclick="window.chooseStockActionEdit()" class="w-full py-4 bg-slate-50 border border-slate-200 text-slate-700 rounded-2xl font-black text-left px-6 flex justify-between items-center active:scale-95 transition-all"><span>1. 編輯屬性與交期</span><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+                <button onclick="window.chooseStockActionTransaction()" class="w-full py-4 bg-blue-50 border border-blue-100 text-blue-700 rounded-2xl font-black text-left px-6 flex justify-between items-center active:scale-95 transition-all"><span>2. 跳轉至異動操作</span><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12h14M12 5l7 7-7 7"/></svg></button>
+            </div>
+            <button onclick="window.closeStockActionChoice()" class="w-full py-3 text-slate-400 font-bold text-sm">取消</button>
+        </div>
+    </div>
+
     <!-- 彈窗：選擇異動目的 (New) -->
     <div id="purpose-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[4800] hidden flex items-center justify-center p-6 text-center">
         <div class="bg-white w-full max-w-sm rounded-3xl p-6 space-y-4 shadow-2xl text-left" onclick="event.stopPropagation()">
@@ -593,7 +605,7 @@
                 const cardClass = isLowStock ? "bg-red-50 border-red-300 shadow-md" : "bg-white border-slate-100 shadow-sm";
                 const statusBadge = isLowStock ? `<div class="text-[10px] font-black text-red-600 bg-red-100 px-1.5 py-0.5 rounded flex items-center gap-1 mb-1.5 w-fit"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0zM12 9v4M12 17h.01"/></svg>庫存警戒 (水位: ${safeStock} | 月均耗量: ${displayMonthlyOut})</div>` : `<div class="text-[10px] font-black text-emerald-600 bg-emerald-100 px-1.5 py-0.5 rounded flex items-center gap-1 mb-1.5 w-fit"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg>庫存正常 (水位: ${safeStock} | 月均耗量: ${displayMonthlyOut})</div>`;
                 const b = uL.map((u, idx) => `<span class="unit-badge">${(gL[idx] || gL[0])}_${u}</span>`).join('');
-                return `<div class="p-4 rounded-2xl border flex justify-between items-center active:bg-slate-50 mb-2 text-left cursor-pointer transition-colors ${cardClass}" onclick="window.clickStockItem('${i.sku}')">
+                return `<div class="p-4 rounded-2xl border flex justify-between items-center active:bg-slate-50 mb-2 text-left cursor-pointer transition-colors ${cardClass}" onclick="window.openStockActionChoice('${i.sku}')">
                     <div class="flex-1 pr-2">
                         ${statusBadge}
                         <div class="mb-1 flex flex-wrap gap-1">${b}</div>
@@ -607,6 +619,34 @@
                     </div>
                 </div>`;
             }).join('');
+        };
+
+        window.stockChoiceTargetSku = null;
+
+        window.openStockActionChoice = (sku) => {
+            window.stockChoiceTargetSku = sku;
+            document.getElementById('stock-choice-title').innerText = `選擇操作 (${sku})`;
+            document.getElementById('stock-action-choice-modal').classList.remove('hidden');
+        };
+
+        window.closeStockActionChoice = () => {
+            document.getElementById('stock-action-choice-modal').classList.add('hidden');
+            window.stockChoiceTargetSku = null;
+        };
+
+        window.chooseStockActionEdit = () => {
+            const sku = window.stockChoiceTargetSku;
+            window.closeStockActionChoice();
+            if (sku) window.clickStockItem(sku);
+        };
+
+        window.chooseStockActionTransaction = () => {
+            const sku = window.stockChoiceTargetSku;
+            window.closeStockActionChoice();
+            if (sku) {
+                window.switchTab('action');
+                window.selectActionItem(sku);
+            }
         };
 
         window.clickStockItem = (sku) => {
@@ -680,8 +720,11 @@
             if (!logs.length) return list.innerHTML = '<div class="py-20 text-slate-300 text-xs text-center uppercase">無符合條件紀錄</div>';
             list.innerHTML = logs.map(l => {
                 const tc = l.type === 'IN' ? 'text-blue-500' : (l.type === 'OUT' ? 'text-orange-500' : 'text-emerald-500');
-                let qd = `${l.type} ${l.change} (剩:${l.after !== undefined ? l.after : '?'})`; 
+                
+                // 動態組合顯示文字：加入 (剩: XX) 的判斷
+                let qd = `${l.type} ${l.change} ${l.after !== undefined ? '(剩:' + l.after + ')' : ''}`; 
                 if (l.type === 'COUNT' && l.diff !== undefined) qd = `盤點: ${l.after} (差: ${l.diff > 0 ? '+' : ''}${l.diff})`;
+                
                 return `<div class="bg-white p-4 rounded-2xl border shadow-sm text-[10px] space-y-1 mb-2 text-left">
                     <div class="flex justify-between items-start"><div class="font-black text-slate-800 font-mono text-sm">${l.sku}</div><div class="font-black ${tc} uppercase">${qd}</div></div>
                     <div class="text-slate-400">👤 ${l.op} • ${l.timestamp ? new Date(l.timestamp.toMillis()).toLocaleString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false }) : ''}</div>
