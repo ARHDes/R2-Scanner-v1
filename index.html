@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+v<!DOCTYPE html>
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>線邊倉助手 V3.5.4</title>
+    <title>線邊倉助手 V3.5.6</title>
     <script src="https://cdn.jsdelivr.net/npm/eruda"></script><script>eruda.init();</script>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
@@ -38,7 +38,7 @@
         <div class="flex items-center gap-2">
             <div class="flex flex-col text-left">
                 <span id="admin-badge" class="hidden text-[8px] font-black bg-amber-500 text-white px-1.5 py-0.5 rounded-full w-fit mb-0.5 uppercase shadow-sm">管理模式</span>
-                <span class="text-[10px] font-black text-slate-400 uppercase tracking-tighter">線邊倉助手 V3.5.4</span>
+                <span class="text-[10px] font-black text-slate-400 uppercase tracking-tighter">線邊倉助手 V3.5.6</span>
                 <span id="display-operator" class="text-sm font-bold text-slate-700 font-mono tracking-tight leading-none text-left">載入中...</span>
             </div>
         </div>
@@ -146,6 +146,10 @@
                     <input type="text" id="hist-search" oninput="window.applyHistoryFilters()" placeholder="搜尋料號/型號..." class="w-full bg-slate-50 border-0 rounded-lg px-3 py-2.5 text-xs font-bold outline-none focus:ring-1 focus:ring-blue-500">
                     <input type="text" id="hist-op" oninput="window.applyHistoryFilters()" placeholder="操作人員工號..." class="w-full bg-slate-50 border-0 rounded-lg px-3 py-2.5 text-xs font-bold outline-none focus:ring-1 focus:ring-blue-500">
                 </div>
+                <!-- 新增：備註萬用字元搜尋欄 -->
+                <div class="mt-2">
+                    <input type="text" id="hist-comment" oninput="window.applyHistoryFilters()" placeholder="搜尋備註 (支援 * 或 ? 萬用字元)..." class="w-full bg-blue-50/50 border-0 rounded-lg px-3 py-2.5 text-xs font-bold outline-none focus:ring-1 focus:ring-blue-500 text-blue-700">
+                </div>
             </div>
             <div id="history-list" class="space-y-2"></div>
         </div>
@@ -163,7 +167,7 @@
         </div>
     </div>
 
-    <!-- 彈窗：歷史紀錄點擊功能選擇 (New) -->
+    <!-- 彈窗：歷史紀錄點擊功能選擇 -->
     <div id="history-action-choice-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[4700] hidden flex items-center justify-center p-6 text-center" onclick="window.closeHistoryActionChoice()">
         <div class="bg-white w-full max-w-sm rounded-3xl p-6 space-y-4 shadow-2xl text-left" onclick="event.stopPropagation()">
             <div class="text-center font-black mb-2"><h3 class="text-lg text-slate-800" id="history-choice-title">選擇操作</h3></div>
@@ -421,13 +425,10 @@
 
         window.updateActionTargetUIIfNeeded = () => { if(window.actionSelectedSku) { const item = window.cachedStock.find(i => i.sku === window.actionSelectedSku); if(item) { window.actionCurrentQty = item.qty || 0; document.getElementById('action-target-qty').innerText = item.qty || 0; } } };
 
-        // --- 新增：快捷備註流程控制 ---
         window.triggerActionSubmit = () => {
             if(!window.actionSelectedSku) return window.showToast("⚠️ 請先搜尋並選取料號", false);
             const qty = parseInt(document.getElementById('input-qty').value) || 0;
             if(qty <= 0 && window.currentMode !== 'COUNT') return window.showToast("數量必須大於 0", false);
-            
-            // 第一步：跳出「目的選擇」
             document.getElementById('purpose-modal').classList.remove('hidden');
         };
 
@@ -436,7 +437,7 @@
         window.selectPurpose = (type) => {
             window.closePurposeModal();
             const commentArea = document.getElementById('transaction-comment');
-            commentArea.value = ""; // 重設
+            commentArea.value = ""; 
 
             if (type === 'PARTS') {
                 window.openPartsEnvSelection();
@@ -444,7 +445,7 @@
                 commentArea.value = "盤點庫存";
                 window.openCommentModal();
             } else {
-                commentArea.value = ""; // 其它，保持空白
+                commentArea.value = ""; 
                 window.openCommentModal();
             }
         };
@@ -492,12 +493,11 @@
             if (!mNo) return window.showToast("請輸入機台編號", false);
             
             const { g, u, us } = window.selectedPartsEnv;
-            // 格式: 機群xx(ex.CSCR01_Unit-用途)
             const generatedRemark = `${g}${mNo}_${u}-${us}`;
             
             document.getElementById('transaction-comment').value = generatedRemark;
             document.getElementById('parts-selection-modal').classList.add('hidden');
-            document.getElementById('machine-no-input').value = ""; // 清空
+            document.getElementById('machine-no-input').value = ""; 
             window.openCommentModal();
         };
 
@@ -526,7 +526,6 @@
             } catch (e) { window.showToast("操作失敗", false); } finally { if(btn) btn.disabled = false; window.setMode(window.currentMode); }
         };
 
-        // --- 其餘庫存清單、篩選邏輯保持不變 ---
         window.stepQty = (v) => { const i = document.getElementById('input-qty'); i.value = Math.max(0, (parseInt(i.value) || 0) + v); };
 
         window.updateUnitDropdown = () => { 
@@ -662,7 +661,6 @@
             }
         };
 
-        // --- 新增：歷史紀錄點擊快捷跳轉邏輯 ---
         window.historyChoiceTargetSku = null;
 
         window.openHistoryActionChoice = (sku) => {
@@ -681,14 +679,11 @@
             window.closeHistoryActionChoice();
             if (sku) {
                 window.switchTab('stock');
-                // 清空其他條件以確保必定搜到
                 document.getElementById('filter-group').selectedIndex = 0;
                 window.updateUnitDropdown();
                 document.getElementById('filter-unit').selectedIndex = 0;
                 window.updateCategoryDropdown();
                 document.getElementById('filter-category').selectedIndex = 0;
-                
-                // 帶入料號搜尋
                 document.getElementById('filter-usage').value = sku;
                 window.applyFilters();
             }
@@ -717,12 +712,17 @@
 
         window.showContextPicker = (item, groups, units, usages, envQtys, mode) => {
             window.activePickerSku = item.sku; const list = document.getElementById('context-options-list'); list.innerHTML = ""; document.getElementById('context-picker-modal').classList.remove('hidden');
+            document.getElementById('picker-title').innerText = mode === 'DELETE' ? "選擇要刪除的環境" : "選擇要編輯的環境"; document.getElementById('picker-desc').innerText = "此料號為共用件："; document.getElementById('admin-full-delete-zone').classList.toggle('hidden', mode !== 'DELETE');
             const count = Math.max(groups.length, units.length, usages.length); 
             for (let i = 0; i < count; i++) {
-                const g = groups[i] || groups[0]; const u = units[i] || units[0]; const us = usages[i] || usages[0]; const eq = envQtys[i] || envQtys[0] || "1";
-                const btn = document.createElement('button'); btn.className = `w-full p-4 border rounded-2xl text-left mb-2 active:scale-95 transition-transform flex justify-between items-center bg-slate-50 border-slate-200`;
-                btn.innerHTML = `<div><span class="font-black text-blue-600 font-mono text-xs">${g}_${u}</span><div class="text-slate-800 text-xs mt-1">位：${us || '未註明'} (用量: ${eq})</div></div>`;
-                btn.onclick = () => { window.openItemForm('EDIT', item.sku, i); window.closeContextPicker(); }; list.appendChild(btn);
+                const g = groups[i] !== undefined ? groups[i] : (groups[0] || ""); 
+                const u = units[i] !== undefined ? units[i] : (units[0] || ""); 
+                const us = usages[i] !== undefined ? usages[i] : (usages[0] || "");
+                const eq = envQtys[i] !== undefined ? envQtys[i] : (envQtys[0] || "1");
+                
+                const btn = document.createElement('button'); btn.className = `w-full p-4 border rounded-2xl text-left mb-2 active:scale-95 transition-transform flex justify-between items-center ${mode === 'DELETE' ? 'bg-red-50 border-red-100' : 'bg-slate-50 border-slate-200'}`;
+                btn.innerHTML = `<div><span class="font-black ${mode === 'DELETE' ? 'text-red-600' : 'text-blue-600'} font-mono text-xs">${g}_${u}</span><div class="text-slate-800 text-xs mt-1">位：${us || '未註明'} (用量: ${eq})</div></div><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" class="${mode === 'DELETE' ? 'text-red-400' : 'text-blue-400'}"><path d="${mode === 'DELETE' ? 'M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6' : 'M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z'}"/></svg>`;
+                btn.onclick = () => { if (mode === 'DELETE') window.executePartialDelete(item.sku, i); else { window.openItemForm('EDIT', item.sku, i); window.closeContextPicker(); } }; list.appendChild(btn);
             }
         };
 
@@ -763,29 +763,58 @@
             }
         };
 
+        // --- 核心更新：加入備註萬用字元搜尋 ---
         window.applyHistoryFilters = () => {
-            const s = document.getElementById('hist-search')?.value.trim().toLowerCase() || ""; const op = document.getElementById('hist-op')?.value.trim().toLowerCase() || ""; const sd = document.getElementById('hist-start-date')?.value; const ed = document.getElementById('hist-end-date')?.value;
+            const s = document.getElementById('hist-search')?.value.trim().toLowerCase() || ""; 
+            const op = document.getElementById('hist-op')?.value.trim().toLowerCase() || ""; 
+            const cmt = document.getElementById('hist-comment')?.value.trim() || ""; // 取得備註搜尋字串
+            const sd = document.getElementById('hist-start-date')?.value; 
+            const ed = document.getElementById('hist-end-date')?.value;
+            
             let f = window.cachedHistory || [];
+            
             if (s) f = f.filter(l => (l.sku||'').toLowerCase().includes(s) || (l.model||'').toLowerCase().includes(s));
             if (op) f = f.filter(l => (l.op||'').toLowerCase().includes(op));
+            
+            // 萬用字元邏輯處理
+            if (cmt) {
+                try {
+                    // 將正則表達式特殊字元轉義 (不含 * 和 ?)
+                    const escaped = cmt.replace(/[.+^${}()|[\]\\]/g, '\\$&');
+                    // 將 * 轉換為 .* ，將 ? 轉換為 .
+                    const regexStr = escaped.replace(/\*/g, '.*').replace(/\?/g, '.');
+                    const regex = new RegExp(regexStr, 'i'); // 'i' 代表不分大小寫
+                    
+                    f = f.filter(l => regex.test(l.comment || ''));
+                } catch (e) {
+                    // 如果正則轉換失敗，退回使用基本字串包含比對
+                    const cmtLower = cmt.toLowerCase();
+                    f = f.filter(l => (l.comment || '').toLowerCase().includes(cmtLower));
+                }
+            }
+
             if (sd) { const st = new Date(sd).getTime(); f = f.filter(l => l.timestamp && l.timestamp.toMillis() >= st); }
             if (ed) { const edt = new Date(ed); edt.setHours(23, 59, 59, 999); f = f.filter(l => l.timestamp && l.timestamp.toMillis() <= edt.getTime()); }
             window.renderHistoryList(f);
         };
 
-        window.resetHistoryFilters = () => { document.getElementById('hist-search').value = ""; document.getElementById('hist-op').value = ""; document.getElementById('hist-start-date').value = ""; document.getElementById('hist-end-date').value = ""; window.applyHistoryFilters(); };
+        window.resetHistoryFilters = () => { 
+            document.getElementById('hist-search').value = ""; 
+            document.getElementById('hist-op').value = ""; 
+            document.getElementById('hist-start-date').value = ""; 
+            document.getElementById('hist-end-date').value = ""; 
+            const commentInput = document.getElementById('hist-comment');
+            if(commentInput) commentInput.value = "";
+            window.applyHistoryFilters(); 
+        };
 
         window.renderHistoryList = (logs) => {
             const list = document.getElementById('history-list'); if (!list) return;
             if (!logs.length) return list.innerHTML = '<div class="py-20 text-slate-300 text-xs text-center uppercase">無符合條件紀錄</div>';
             list.innerHTML = logs.map(l => {
                 const tc = l.type === 'IN' ? 'text-blue-500' : (l.type === 'OUT' ? 'text-orange-500' : 'text-emerald-500');
-                
-                // 動態組合顯示文字：加入 (剩: XX) 的判斷
                 let qd = `${l.type} ${l.change} ${l.after !== undefined ? '(剩:' + l.after + ')' : ''}`; 
                 if (l.type === 'COUNT' && l.diff !== undefined) qd = `盤點: ${l.after} (差: ${l.diff > 0 ? '+' : ''}${l.diff})`;
-                
-                // 加入 cursor-pointer 與 onclick 跳轉事件，並為刪除按鈕加入 event.stopPropagation()
                 return `<div class="bg-white p-4 rounded-2xl border shadow-sm text-[10px] space-y-1 mb-2 text-left cursor-pointer active:bg-slate-50 transition-colors" onclick="window.openHistoryActionChoice('${l.sku}')">
                     <div class="flex justify-between items-start">
                         <div class="font-black text-slate-800 font-mono text-sm">${l.sku}</div>
