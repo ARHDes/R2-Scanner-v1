@@ -649,6 +649,53 @@
             }
         };
 
+        // --- 新增：歷史紀錄點擊快捷跳轉邏輯 ---
+        window.historyChoiceTargetSku = null;
+
+        window.openHistoryActionChoice = (sku) => {
+            window.historyChoiceTargetSku = sku;
+            document.getElementById('history-choice-title').innerText = `選擇操作 (${sku})`;
+            document.getElementById('history-action-choice-modal').classList.remove('hidden');
+        };
+
+        window.closeHistoryActionChoice = () => {
+            document.getElementById('history-action-choice-modal').classList.add('hidden');
+            window.historyChoiceTargetSku = null;
+        };
+
+        window.chooseHistoryActionStock = () => {
+            const sku = window.historyChoiceTargetSku;
+            window.closeHistoryActionChoice();
+            if (sku) {
+                window.switchTab('stock');
+                // 清空其他條件以確保必定搜到
+                document.getElementById('filter-group').selectedIndex = 0;
+                window.updateUnitDropdown();
+                document.getElementById('filter-unit').selectedIndex = 0;
+                window.updateCategoryDropdown();
+                document.getElementById('filter-category').selectedIndex = 0;
+                
+                // 帶入料號搜尋
+                document.getElementById('filter-usage').value = sku;
+                window.applyFilters();
+            }
+        };
+
+        window.chooseHistoryActionTransaction = () => {
+            const sku = window.historyChoiceTargetSku;
+            window.closeHistoryActionChoice();
+            if (sku) {
+                window.switchTab('action');
+                const item = window.cachedStock.find(i => i.sku === sku);
+                if(item) {
+                    window.selectActionItem(sku);
+                } else {
+                    document.getElementById('action-search').value = sku;
+                    window.onActionSearch(sku);
+                }
+            }
+        };
+
         window.clickStockItem = (sku) => {
             const it = window.cachedStock.find(i => i.sku === sku); if (!it) return;
             const gL = (it.group || "").split(",").map(s => s.trim()).filter(Boolean); const uL = (it.unit || "").split(",").map(s => s.trim()).filter(Boolean); const usL = (it.usage || "").split(",").map(s => s.trim()); const eqL = (it.envQty || "").split(",").map(s => s.trim()); 
