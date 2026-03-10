@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>線邊倉助手 V3.5.0</title>
+    <title>線邊倉助手 V3.5.4</title>
     <script src="https://cdn.jsdelivr.net/npm/eruda"></script><script>eruda.init();</script>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
@@ -38,7 +38,7 @@
         <div class="flex items-center gap-2">
             <div class="flex flex-col text-left">
                 <span id="admin-badge" class="hidden text-[8px] font-black bg-amber-500 text-white px-1.5 py-0.5 rounded-full w-fit mb-0.5 uppercase shadow-sm">管理模式</span>
-                <span class="text-[10px] font-black text-slate-400 uppercase tracking-tighter">線邊倉助手 V3.5.0</span>
+                <span class="text-[10px] font-black text-slate-400 uppercase tracking-tighter">線邊倉助手 V3.5.4</span>
                 <span id="display-operator" class="text-sm font-bold text-slate-700 font-mono tracking-tight leading-none text-left">載入中...</span>
             </div>
         </div>
@@ -151,7 +151,7 @@
         </div>
     </main>
 
-    <!-- 彈窗：庫存點擊功能選擇 (New) -->
+    <!-- 彈窗：庫存點擊功能選擇 -->
     <div id="stock-action-choice-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[4700] hidden flex items-center justify-center p-6 text-center" onclick="window.closeStockActionChoice()">
         <div class="bg-white w-full max-w-sm rounded-3xl p-6 space-y-4 shadow-2xl text-left" onclick="event.stopPropagation()">
             <div class="text-center font-black mb-2"><h3 class="text-lg text-slate-800" id="stock-choice-title">選擇操作</h3></div>
@@ -163,7 +163,19 @@
         </div>
     </div>
 
-    <!-- 彈窗：選擇異動目的 (New) -->
+    <!-- 彈窗：歷史紀錄點擊功能選擇 (New) -->
+    <div id="history-action-choice-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[4700] hidden flex items-center justify-center p-6 text-center" onclick="window.closeHistoryActionChoice()">
+        <div class="bg-white w-full max-w-sm rounded-3xl p-6 space-y-4 shadow-2xl text-left" onclick="event.stopPropagation()">
+            <div class="text-center font-black mb-2"><h3 class="text-lg text-slate-800" id="history-choice-title">選擇操作</h3></div>
+            <div class="grid grid-cols-1 gap-3">
+                <button onclick="window.chooseHistoryActionStock()" class="w-full py-4 bg-slate-50 border border-slate-200 text-slate-700 rounded-2xl font-black text-left px-6 flex justify-between items-center active:scale-95 transition-all"><span>1. 在現存庫存中尋找</span><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg></button>
+                <button onclick="window.chooseHistoryActionTransaction()" class="w-full py-4 bg-blue-50 border border-blue-100 text-blue-700 rounded-2xl font-black text-left px-6 flex justify-between items-center active:scale-95 transition-all"><span>2. 跳轉至異動操作</span><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M5 12h14M12 5l7 7-7 7"/></svg></button>
+            </div>
+            <button onclick="window.closeHistoryActionChoice()" class="w-full py-3 text-slate-400 font-bold text-sm">取消</button>
+        </div>
+    </div>
+
+    <!-- 彈窗：選擇異動目的 -->
     <div id="purpose-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[4800] hidden flex items-center justify-center p-6 text-center">
         <div class="bg-white w-full max-w-sm rounded-3xl p-6 space-y-4 shadow-2xl text-left" onclick="event.stopPropagation()">
             <div class="text-center font-black mb-2"><h3 class="text-lg">請選擇異動目的</h3></div>
@@ -176,7 +188,7 @@
         </div>
     </div>
 
-    <!-- 彈窗：選擇更換環境與機編 (New) -->
+    <!-- 彈窗：選擇更換環境與機編 -->
     <div id="parts-selection-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[4900] hidden flex items-center justify-center p-6 text-center">
         <div class="bg-white w-full max-w-sm rounded-3xl p-6 space-y-4 shadow-2xl text-left" onclick="event.stopPropagation()">
             <div class="text-center font-black"><h3 class="text-lg">更換明細設定</h3></div>
@@ -197,7 +209,7 @@
         </div>
     </div>
 
-    <!-- 彈窗：備註與確認 (修正為第二步) -->
+    <!-- 彈窗：備註與確認 -->
     <div id="comment-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[5000] hidden flex items-center justify-center p-6 text-center">
         <div class="bg-white w-full max-w-sm rounded-3xl p-6 space-y-4 shadow-2xl text-left" onclick="event.stopPropagation()">
             <div class="text-center font-black"><h3 class="text-lg">紀錄確認 (Comment)</h3></div>
@@ -401,7 +413,8 @@
             document.getElementById('action-search-results').classList.add('hidden'); document.getElementById('action-search').value = '';
             document.getElementById('action-target-sku').innerText = sku;
             document.getElementById('action-target-model').innerHTML = `<span class="bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded text-[10px] mr-1.5 font-bold">${item.category || '無分類'}</span>${item.model || '無型號'}`;
-            document.getElementById('action-target-qty').innerText = item.qty || 0; document.getElementById('action-target-card').classList.remove('hidden');
+            document.getElementById('action-target-qty').innerText = item.qty || 0;
+            document.getElementById('action-target-card').classList.remove('hidden');
             const qs = document.getElementById('action-qty-section'); qs.classList.remove('opacity-50', 'pointer-events-none');
             document.getElementById('input-qty').value = "1";
         };
@@ -772,8 +785,15 @@
                 let qd = `${l.type} ${l.change} ${l.after !== undefined ? '(剩:' + l.after + ')' : ''}`; 
                 if (l.type === 'COUNT' && l.diff !== undefined) qd = `盤點: ${l.after} (差: ${l.diff > 0 ? '+' : ''}${l.diff})`;
                 
-                return `<div class="bg-white p-4 rounded-2xl border shadow-sm text-[10px] space-y-1 mb-2 text-left">
-                    <div class="flex justify-between items-start"><div class="font-black text-slate-800 font-mono text-sm">${l.sku}</div><div class="font-black ${tc} uppercase">${qd}</div></div>
+                // 加入 cursor-pointer 與 onclick 跳轉事件，並為刪除按鈕加入 event.stopPropagation()
+                return `<div class="bg-white p-4 rounded-2xl border shadow-sm text-[10px] space-y-1 mb-2 text-left cursor-pointer active:bg-slate-50 transition-colors" onclick="window.openHistoryActionChoice('${l.sku}')">
+                    <div class="flex justify-between items-start">
+                        <div class="font-black text-slate-800 font-mono text-sm">${l.sku}</div>
+                        <div class="flex items-center gap-2">
+                            <div class="font-black ${tc} uppercase">${qd}</div>
+                            ${window.adminModeActive ? `<button onclick="event.stopPropagation(); window.deleteHistoryItem('${l.id}', ${JSON.stringify(l).replace(/"/g, '&quot;')})" class="p-1.5 bg-red-50 text-red-500 rounded-lg active:scale-90"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>` : ''}
+                        </div>
+                    </div>
                     <div class="text-slate-400">👤 ${l.op} • ${l.timestamp ? new Date(l.timestamp.toMillis()).toLocaleString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false }) : ''}</div>
                     <div class="text-slate-500 font-mono">型號: ${l.model||'無紀錄'}</div>
                     ${l.comment ? `<div class="mt-2 bg-blue-50/50 text-blue-600 p-2 rounded-lg italic font-bold">備註: ${l.comment}</div>` : ''}
