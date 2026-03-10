@@ -803,7 +803,70 @@
 
         window.switchTab = (t) => { ['action', 'stock', 'history'].forEach(x => { document.getElementById(`section-${x}`).classList.toggle('hidden', x !== t); const btn = document.getElementById(`tab-${x}-btn`); if(x===t){ btn.classList.add('tab-active'); btn.classList.remove('text-slate-400'); } else { btn.classList.remove('tab-active'); btn.classList.add('text-slate-400'); } }); if(t === 'stock') window.applyFilters(); };
 
-        window.deleteStockItem = async (sku) => { if (confirm(`徹底刪除料號 ${sku}？`)) { try { await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'stock', sku)); window.showToast("已徹底刪除", true); } catch (e) {} } };
+        window.deleteStockItem = async (sku) => {
+            const it = window.cachedStock.find(i => i.sku === sku); if (!it) return;
+            const gL = (it.group || "").split(",").map(s => s.trim()).filter(Boolean); 
+            const uL = (it.unit || "").split(",").map(s => s.trim()).filter(Boolean); 
+            const usL = (it.usage || "").split(",").map(s => s.trim());
+            const count = Math.max(gL.length, uL.length);
+            if (count > 1) { 
+                const eqL = (it.envQty || "").split(",").map(s => s.trim());
+                window.showContextPicker(it, gL, uL, usL, eqL, 'DELETE'); 
+            }
+            else { 
+                if (confirm(`徹底刪除料號 ${sku}？`)) { 
+                    try { await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'stock', sku)); window.showToast("已徹底刪除", true); } catch (e) { window.showToast("刪除失敗", false); } 
+                } 
+            }
+        };
+
+        window.executePartialDelete = async (sku, idx) => {
+            if (!confirm("確定移除此環境關聯？")) return;
+            const item = window.cachedStock.find(i => i.sku === sku); if(!item) return;
+            const gL = (item.group || "").split(",").map(s => s.trim()); 
+            const uL = (item.unit || "").split(",").map(s => s.trim()); 
+            const usL = (item.usage || "").split(",").map(s => s.trim());
+            const eqL = (item.envQty || "").split(",").map(s => s.trim());
+            
+            gL.splice(idx, 1); uL.splice(idx, 1); 
+            if (usL.length > idx) usL.splice(idx, 1); 
+            if(eqL.length > idx) eqL.splice(idx, 1);
+            try { 
+                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'stock', sku), { ...item, group: gL.join(", "), unit: uL.join(", "), usage: usL.join(", "), envQty: eqL.join(", "), lastOp: `${window.operatorId}(移除環境)` }); 
+                window.showToast("已移除環境", true); 
+                window.closeContextPicker(); 
+            } catch (e) { window.showToast("移除失敗", false); }
+        };
+
+        window.executeFullDeleteFromPicker = async () => { 
+            if(confirm("警告：徹底刪除整個料號及所有環境設定！確定刪除？")) { 
+                try { 
+                    await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'stock', window.activePickerSku)); 
+                    window.showToast("已徹底刪除", true); 
+                    window.closeContextPicker(); 
+                } catch (e) { window.showToast("刪除失敗", false); } 
+            } 
+        };
+
+        window.deleteHistoryItem = async (id, data) => {
+            if (!window.adminModeActive || !confirm("確定回退並刪除此紀錄？")) return;
+            try {
+                await runTransaction(db, async (tx) => {
+                    const sRef = doc(db, 'artifacts', appId, 'public', 'data', 'stock', data.sku); 
+                    const sSnap = await tx.get(sRef); 
+                    if (!sSnap.exists()) throw "庫存不存在";
+                    const cur = parseInt(sSnap.data().qty) || 0; 
+                    let rb = cur;
+                    if (data.type === 'IN') rb = cur - data.change; 
+                    else if (data.type === 'OUT') rb = cur + data.change; 
+                    else rb = cur - (data.diff || 0);
+                    const opName = window.operatorId === 'Admin' ? '*****' : window.operatorId;
+                    tx.delete(doc(db, 'artifacts', appId, 'public', 'data', 'history', id)); 
+                    tx.update(sRef, { qty: rb, lastOp: `${opName}(Rb)` });
+                }); 
+                window.showToast("紀錄已回退", true);
+            } catch (e) { window.showToast("回退失敗", false); }
+        };
 
         window.toggleAdminMode = () => { window.adminModeActive = !window.adminModeActive; document.getElementById('top-nav').classList.toggle('admin-glow', window.adminModeActive); document.getElementById('admin-badge').classList.toggle('hidden', !window.adminModeActive); window.applyFilters(); window.applyHistoryFilters(); window.renderOptions(); };
         window.toggleSettingsManager = (s) => { document.getElementById('settings-modal').classList.toggle('hidden', !s); if(s) { document.getElementById('admin-cat-controls').classList.toggle('hidden', !window.adminModeActive); document.getElementById('admin-group-controls').classList.toggle('hidden', !window.adminModeActive); document.getElementById('admin-section-container').classList.toggle('hidden', !window.adminModeActive); } };
